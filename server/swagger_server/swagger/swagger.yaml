@@ -1,0 +1,660 @@
+openapi: 3.0.3
+info:
+  title: FABRIC Project Registry
+  description: FABRIC Project Registry
+  termsOfService: None
+  contact:
+    name: Michael J. Stealey
+    email: stealey@unc.edu
+  license:
+    name: MIT
+    url: tbd
+  version: 1.0.0
+servers:
+- url: http://127.0.0.1:5000/
+  description: local development
+- url: https://virtserver.swaggerhub.com/mjstealey/project-registry/1.0.0
+  description: SwaggerHub API Auto Mocking
+tags:
+- name: projects
+  description: Projects in FABRIC
+- name: people
+  description: People in FABRIC projects
+- name: default
+  description: Default information
+paths:
+  /version:
+    get:
+      tags:
+      - default
+      summary: version
+      description: version
+      operationId: version_get
+      responses:
+        "200":
+          description: version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Version'
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+  /projects:
+    get:
+      tags:
+      - projects
+      summary: list of projects
+      description: list of projects
+      operationId: projects_get
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_short'
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: Projects not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/{PROJECT_ID}:
+    get:
+      tags:
+      - projects
+      summary: project details
+      description: project details
+      operationId: projects_project_idget
+      parameters:
+      - name: PROJECT_ID
+        in: path
+        description: Project identifier as UUID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_long'
+        "400":
+          description: Bad request. Project ID must be in uuid-4 format
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/create:
+    post:
+      tags:
+      - projects
+      summary: create new project
+      description: create new project
+      operationId: projects_create_post
+      parameters:
+      - name: name
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: description
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: facility
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: tags
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      - name: project_owners
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      - name: project_members
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_long'
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/update:
+    put:
+      tags:
+      - projects
+      summary: update an existing project
+      description: update an existing project name, description or facility
+      operationId: projects_update_put
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: name
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: description
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: facility
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_long'
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/add_tags:
+    put:
+      tags:
+      - projects
+      summary: add tags to an existing project
+      description: add tags to an existing project
+      operationId: projects_add_tags_put
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: tags
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_long'
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/add_owners:
+    put:
+      tags:
+      - projects
+      summary: add owners to an existing project
+      description: add owners to an existing project
+      operationId: projects_add_owners_put
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: project_owners
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_long'
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/add_members:
+    put:
+      tags:
+      - projects
+      summary: add members to an existing project
+      description: add members to an existing project
+      operationId: projects_add_members_put
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: project_members
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_long'
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/remove_tags:
+    put:
+      tags:
+      - projects
+      summary: remove tags to an existing project
+      description: remove tags to an existing project
+      operationId: projects_remove_tags_put
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: tags
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_long'
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid.
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/remove_owners:
+    put:
+      tags:
+      - projects
+      summary: remove owners to an existing project
+      description: remove owners to an existing project
+      operationId: projects_remove_owners_put
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: project_owners
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_long'
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/remove_members:
+    put:
+      tags:
+      - projects
+      summary: remove members to an existing project
+      description: remove members to an existing project
+      operationId: projects_remove_members_put
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: project_members
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project_long'
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/delete:
+    delete:
+      tags:
+      - projects
+      summary: delete existing project
+      description: delete existing project
+      operationId: projects_delete_delete
+      parameters:
+      - name: PROJECT_ID
+        in: query
+        description: Project identifier as UUID
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Project with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /people:
+    get:
+      tags:
+      - people
+      summary: list of people
+      description: list of people
+      operationId: people_get
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/People_short'
+                x-content-type: application/json
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: People not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.people_controller
+  /people/{PEOPLE_ID}:
+    get:
+      tags:
+      - people
+      summary: person details
+      description: person details
+      operationId: people_people_idget
+      parameters:
+      - name: PEOPLE_ID
+        in: path
+        description: People identifier as UUID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/People_long'
+        "400":
+          description: Bad request. People ID must be in uuid-4 format
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: A Person with the specified ID was not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.people_controller
+components:
+  schemas:
+    Project_short:
+      properties:
+        project_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        facility:
+          type: string
+      example:
+        project_id: project_id
+        name: name
+        description: description
+        facility: facility
+    Project_long:
+      properties:
+        project_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        facility:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        project_leads:
+          type: array
+          items:
+            type: string
+        facility_operators:
+          type: array
+          items:
+            type: string
+        project_owners:
+          type: array
+          items:
+            type: string
+        project_members:
+          type: array
+          items:
+            type: string
+      example:
+        project_members:
+        - project_members
+        - project_members
+        project_leads:
+        - project_leads
+        - project_leads
+        project_id: project_id
+        facility_operators:
+        - facility_operators
+        - facility_operators
+        name: name
+        description: description
+        project_owners:
+        - project_owners
+        - project_owners
+        facility: facility
+        tags:
+        - tags
+        - tags
+    People_short:
+      properties:
+        people_id:
+          type: string
+        cilogon_uid:
+          type: string
+        name:
+          type: string
+      example:
+        people_id: people_id
+        cilogon_uid: cilogon_uid
+        name: name
+    People_long:
+      properties:
+        people_id:
+          type: string
+        cilogon_uid:
+          type: string
+        name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        projects:
+          type: array
+          items:
+            type: string
+      example:
+        people_id: people_id
+        projects:
+        - projects
+        - projects
+        cilogon_uid: cilogon_uid
+        roles:
+        - roles
+        - roles
+        name: name
+    Version:
+      properties:
+        version:
+          type: string
+        gitsha1:
+          type: string
+      example:
+        gitsha1: gitsha1
+        version: version
+
