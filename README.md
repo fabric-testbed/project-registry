@@ -169,7 +169,7 @@ API `/projects`:
 
 Resource | Action | Input | Output
 :--------|:----:|:---:|:---:
-`/projects` | GET: list of all projects | NA | Project Short format
+`/projects` | GET: list of all projects | NA | Array of Project Short format
 `/projects/add_members` | PUT: add people to members role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
 `/projects/add_owners` | PUT: add people to owners role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
 `/projects/add_tags` | PUT: add new tag | `PROJECT_ID`, array of tags | Project Long format
