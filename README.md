@@ -173,7 +173,7 @@ Resource | Action | Input | Output
 `/projects/add_members` | PUT: add people to members role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
 `/projects/add_owners` | PUT: add people to owners role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
 `/projects/add_tags` | PUT: add new tag | `PROJECT_ID`, array of tags | Project Long format
-`/projects/create` | POST: create new project | name, description, facility, array of `project_members`, array of `project_owners`, array of `tags` | project details
+`/projects/create` | POST: create new project | name, description, facility, array of `project_members`, array of `project_owners`, array of `tags` | Project Long format
 `/projects/delete` | DELETE: delete existing project | `PROJECT_ID` | Status Code
 `/projects/remove_members` | PUT: remove existing people from members role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
 `/projects/remove_owners` | PUT: remove existing people from owners role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
