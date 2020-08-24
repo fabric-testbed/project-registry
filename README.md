@@ -74,25 +74,25 @@ TODO
 
 ### Terminology notes
 
-`PROJECT_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html)
+`PROJECT_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `e6f42656-15db-4b4f-af90-00492ca603c1`)
 
-`PEOPLE_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html)
+`PEOPLE_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `ea806951-a22e-4e85-bc70-4ce74b1967b9`)
 
-`CILOGON_ID` - unique person identifier based on CILogon `sub` attribute (e.g., `http://cilogon.org/serverA/users/242181`)
+`CILOGON_ID` - unique person identifier based on CILogon `sub` attribute (e.g. `http://cilogon.org/serverA/users/242181`)
 
 `ROLES` - project related roles that can be one or more of:
 
-- Project Lead
-- Facility Operator
-- Project Owner
-- Project Member
+- Project Lead (e.g. `CO:COU:FABRIC-ProjectLead:members:active`)
+- Facility Operator (e.g. `CO:COU:FABRIC-FacilityOperator:members:active`)
+- Project Owner (e.g. `CO:COU:FABRIC-ProjectOwner:members:active`)
+- Project Member (e.g. `CO:COU:FABRIC-ProjectMember:members:active`)
 
-`TAGS` - additional attributes applied at the project level and managed by the **Facility Operator**
+`TAGS` - additional attributes applied at the project level and managed by the Facility Operator, for example:
 
-- peering
-- cloudconnect
-- fab-eu
-- fab-apac
+- `peering`
+- `cloudconnect`
+- `fab-eu`
+- `fab-apac`
 
 `NA` - Not Applicable
 
