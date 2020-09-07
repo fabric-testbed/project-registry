@@ -1,9 +1,7 @@
-import connexion
-import six
-
 from swagger_server.models.people_long import PeopleLong  # noqa: E501
 from swagger_server.models.people_short import PeopleShort  # noqa: E501
-from swagger_server import util
+
+from .utils import dict_from_query
 
 
 def people_get():  # noqa: E501
@@ -14,41 +12,97 @@ def people_get():  # noqa: E501
 
     :rtype: List[PeopleShort]
     """
+    # response as array of PeopleShort()
     response = []
-    people = PeopleShort()
 
-    # mock response
-    people.people_id = 'e6f42656-15db-4b4f-af90-00492ca603c1'
-    people.cilogon_uid = 'http://cilogon.org/serverA/users/242181'
-    people.name = 'Michael Stealey'
-    response.append(people)
+    sql = """
+    SELECT email, name, uuid from fabric_people
+    ORDER BY name;
+    """
+    dfq = dict_from_query(sql)
+
+    # construct response object
+    for person in dfq:
+        ps = PeopleShort()
+        ps.email = person['email']
+        ps.name = person['name']
+        ps.uuid = person['uuid']
+        response.append(ps)
 
     return response
 
 
-def people_people_idget(people_id):  # noqa: E501
+def people_uuid_get(uuid):  # noqa: E501
     """person details
 
-    person details # noqa: E501
+    Person details # noqa: E501
 
-    :param people_id: People identifier as UUID
-    :type people_id: str
+    :param uuid: People identifier as UUID
+    :type uuid: str
 
     :rtype: PeopleLong
     """
+    # response as PeopleLong()
     response = PeopleLong()
 
-    # mock response
-    response.people_id = 'e6f42656-15db-4b4f-af90-00492ca603c1'
-    response.cilogon_uid = 'http://cilogon.org/serverA/users/242181'
-    response.name = 'Michael Stealey'
-    response.roles = [
-        'CO:COU:FABRIC-LEAD:members:active',
-        'CO:COU:FABRIC-OWNER:members:active',
-        'CO:COU:FABRIC-MEMBER:members:active'
-    ]
-    response.projects = [
-        'ea806951-a22e-4e85-bc70-4ce74b1967b9'
-    ]
+    # get people id
+    sql = """
+    SELECT id from fabric_people WHERE uuid = '{0}'
+    """.format(uuid)
+    dfq = dict_from_query(sql)
+    people_id = dfq[0]['id']
+
+    # get person attributes
+    sql_person = """
+    SELECT cilogon_id, email, eppn, name, uuid from fabric_people
+    WHERE id = '{0}';
+    """.format(people_id)
+    person = dict_from_query(sql_person)[0]
+
+    # get roles
+    roles = []
+    sql_roles = """
+    SELECT role from roles
+    WHERE people_id = '{0}';
+    """.format(people_id)
+    dfq = dict_from_query(sql_roles)
+    for role in dfq:
+        roles.append(role['role'])
+
+    # get projects
+    projects = []
+    if "CO:COU:facility-operators:members:active" in roles:
+        # if is facility-operator, can access all projects (regardless of other roles)
+        sql_projects = """
+        SELECT uuid from fabric_projects
+        ORDER BY uuid;
+        """
+    else:
+        # if not facility operator, get all groups from project leads, owners and members tables
+        sql_projects = """
+        SELECT uuid from fabric_projects
+        INNER JOIN project_leads ON fabric_projects.id = project_leads.projects_id 
+        AND project_leads.people_id = {0}
+        UNION
+        SELECT uuid from fabric_projects
+        INNER JOIN project_owners ON fabric_projects.id = project_owners.projects_id 
+        AND project_owners.people_id = {0}
+        UNION
+        SELECT uuid from fabric_projects
+        INNER JOIN project_members ON fabric_projects.id = project_members.projects_id 
+        AND project_members.people_id = {0}
+        """.format(people_id)
+    dfq = dict_from_query(sql_projects)
+    for project in dfq:
+        projects.append(project['uuid'])
+
+    # construct response object
+    response.uuid = person['uuid']
+    response.cilogon_id = person['cilogon_id']
+    response.name = person['name']
+    response.email = person['email']
+    response.eppn = person['eppn']
+    response.roles = roles
+    response.projects = projects
 
     return response

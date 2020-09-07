@@ -9,7 +9,7 @@ from swagger_server.response_code import default_controller as rc
 def version_get():  # noqa: E501
     """version
 
-    version # noqa: E501
+    Version # noqa: E501
 
 
     :rtype: Version

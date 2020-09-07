@@ -7,55 +7,55 @@ from swagger_server import util
 from swagger_server.response_code import projects_controller as rc
 
 
-def projects_add_members_put(project_id, project_members=None):  # noqa: E501
+def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     """add members to an existing project
 
-    add members to an existing project # noqa: E501
+    Add members to an existing project # noqa: E501
 
-    :param project_id: 
-    :type project_id: str
-    :param project_members: 
+    :param uuid: 
+    :type uuid: str
+    :param project_members: Array of project members as UUID
     :type project_members: List[str]
 
     :rtype: ProjectLong
     """
-    return rc.projects_add_members_put(project_id, project_members=None)
+    return rc.projects_add_members_put(uuid, project_members)
 
 
-def projects_add_owners_put(project_id, project_owners=None):  # noqa: E501
+def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
     """add owners to an existing project
 
-    add owners to an existing project # noqa: E501
+    Add owners to an existing project # noqa: E501
 
-    :param project_id: 
-    :type project_id: str
-    :param project_owners: 
+    :param uuid: 
+    :type uuid: str
+    :param project_owners: Array of project owners as UUID
     :type project_owners: List[str]
 
     :rtype: ProjectLong
     """
-    return rc.projects_add_owners_put(project_id, project_owners=None)
+    return rc.projects_add_owners_put(uuid, project_owners)
 
 
-def projects_add_tags_put(project_id, tags=None):  # noqa: E501
+def projects_add_tags_put(uuid, tags=None):  # noqa: E501
     """add tags to an existing project
 
-    add tags to an existing project # noqa: E501
+    Add tags to an existing project # noqa: E501
 
-    :param project_id: 
-    :type project_id: str
+    :param uuid: 
+    :type uuid: str
     :param tags: 
     :type tags: List[str]
 
     :rtype: ProjectLong
     """
-    return rc.projects_add_tags_put(project_id, tags=None)
+    return rc.projects_add_tags_put(uuid, tags)
 
 
-def projects_create_post(name, description, facility=None, tags=None, project_owners=None, project_members=None):  # noqa: E501
+def projects_create_post(name, description, facility, tags=None, project_owners=None, project_members=None):  # noqa: E501
     """create new project
 
-    create new project # noqa: E501
+    Create new project # noqa: E501
 
     :param name: 
     :type name: str
@@ -65,33 +65,33 @@ def projects_create_post(name, description, facility=None, tags=None, project_ow
     :type facility: str
     :param tags: 
     :type tags: List[str]
-    :param project_owners: 
+    :param project_owners: Array of project owners as UUID
     :type project_owners: List[str]
-    :param project_members: 
+    :param project_members: Array of project members as UUID
     :type project_members: List[str]
 
     :rtype: ProjectLong
     """
-    return rc.projects_create_post(name, description, facility=None, tags=None, project_owners=None, project_members=None)
+    return rc.projects_create_post(name, description, facility, tags, project_owners, project_members)
 
 
-def projects_delete_delete(project_id):  # noqa: E501
+def projects_delete_delete(uuid):  # noqa: E501
     """delete existing project
 
-    delete existing project # noqa: E501
+    Delete existing project # noqa: E501
 
-    :param project_id: Project identifier as UUID
-    :type project_id: str
+    :param uuid: Project identifier as UUID
+    :type uuid: str
 
     :rtype: None
     """
-    return rc.projects_delete_delete(project_id)
+    return rc.projects_delete_delete(uuid)
 
 
 def projects_get():  # noqa: E501
     """list of projects
 
-    list of projects # noqa: E501
+    List of projects # noqa: E501
 
 
     :rtype: ProjectShort
@@ -99,71 +99,58 @@ def projects_get():  # noqa: E501
     return rc.projects_get()
 
 
-def projects_project_idget(project_id):  # noqa: E501
-    """project details
-
-    project details # noqa: E501
-
-    :param project_id: Project identifier as UUID
-    :type project_id: str
-
-    :rtype: ProjectLong
-    """
-    return rc.projects_project_idget(project_id)
-
-
-def projects_remove_members_put(project_id, project_members=None):  # noqa: E501
+def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
     """remove members to an existing project
 
-    remove members to an existing project # noqa: E501
+    Remove members to an existing project # noqa: E501
 
-    :param project_id: 
-    :type project_id: str
-    :param project_members: 
+    :param uuid: 
+    :type uuid: str
+    :param project_members: Array of project members as UUID
     :type project_members: List[str]
 
     :rtype: ProjectLong
     """
-    return rc.projects_remove_members_put(project_id, project_members=None)
+    return rc.projects_remove_members_put(uuid, project_members)
 
 
-def projects_remove_owners_put(project_id, project_owners=None):  # noqa: E501
+def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
     """remove owners to an existing project
 
-    remove owners to an existing project # noqa: E501
+    Remove owners to an existing project # noqa: E501
 
-    :param project_id: 
-    :type project_id: str
-    :param project_owners: 
+    :param uuid: 
+    :type uuid: str
+    :param project_owners: Array of project owners as UUID
     :type project_owners: List[str]
 
     :rtype: ProjectLong
     """
-    return rc.projects_remove_owners_put(project_id, project_owners=None)
+    return rc.projects_remove_owners_put(uuid, project_owners)
 
 
-def projects_remove_tags_put(project_id, tags=None):  # noqa: E501
+def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
     """remove tags to an existing project
 
-    remove tags to an existing project # noqa: E501
+    Remove tags to an existing project # noqa: E501
 
-    :param project_id: 
-    :type project_id: str
+    :param uuid: 
+    :type uuid: str
     :param tags: 
     :type tags: List[str]
 
     :rtype: ProjectLong
     """
-    return rc.projects_remove_tags_put(project_id, tags=None)
+    return rc.projects_remove_tags_put(uuid, tags)
 
 
-def projects_update_put(project_id, name=None, description=None, facility=None):  # noqa: E501
+def projects_update_put(uuid, name=None, description=None, facility=None):  # noqa: E501
     """update an existing project
 
-    update an existing project name, description or facility # noqa: E501
+    Update an existing project name, description or facility # noqa: E501
 
-    :param project_id: 
-    :type project_id: str
+    :param uuid: 
+    :type uuid: str
     :param name: 
     :type name: str
     :param description: 
@@ -173,4 +160,17 @@ def projects_update_put(project_id, name=None, description=None, facility=None):
 
     :rtype: ProjectLong
     """
-    return rc.projects_update_put(project_id, name=None, description=None, facility=None)
+    return rc.projects_update_put(uuid, name, description, facility)
+
+
+def projects_uuid_get(uuid):  # noqa: E501
+    """project details
+
+    Project details # noqa: E501
+
+    :param uuid: Project identifier as UUID
+    :type uuid: str
+
+    :rtype: ProjectLong
+    """
+    return rc.projects_uuid_get(uuid)

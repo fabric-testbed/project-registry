@@ -2,6 +2,11 @@
 
 # run this script from the scripts directory
 SCRIPTS_DIR=$(pwd)
+
+# start local database
+./run-local-database.sh
+
+# launch the server
 cd ../server
 
 # variables
@@ -19,8 +24,8 @@ source venv/bin/activate
 echo "[INFO] install requirements.txt"
 pip install -r requirements.txt
 
-# run development server
-FLASK_ENV=development python -m swagger_server
+# run production server using uwsgi
+uwsgi --virtualenv ./venv --ini swagger_server/ini/pr_uwsgi.ini
 
 # return to scripts directory and exit
 cd $SCRIPTS_DIR || exit 0;

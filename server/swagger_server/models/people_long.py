@@ -14,38 +14,48 @@ class PeopleLong(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, people_id: str=None, cilogon_uid: str=None, name: str=None, roles: List[str]=None, projects: List[str]=None):  # noqa: E501
+    def __init__(self, uuid: str=None, cilogon_id: str=None, name: str=None, email: str=None, eppn: str=None, roles: List[str]=None, projects: List[str]=None):  # noqa: E501
         """PeopleLong - a model defined in Swagger
 
-        :param people_id: The people_id of this PeopleLong.  # noqa: E501
-        :type people_id: str
-        :param cilogon_uid: The cilogon_uid of this PeopleLong.  # noqa: E501
-        :type cilogon_uid: str
+        :param uuid: The uuid of this PeopleLong.  # noqa: E501
+        :type uuid: str
+        :param cilogon_id: The cilogon_id of this PeopleLong.  # noqa: E501
+        :type cilogon_id: str
         :param name: The name of this PeopleLong.  # noqa: E501
         :type name: str
+        :param email: The email of this PeopleLong.  # noqa: E501
+        :type email: str
+        :param eppn: The eppn of this PeopleLong.  # noqa: E501
+        :type eppn: str
         :param roles: The roles of this PeopleLong.  # noqa: E501
         :type roles: List[str]
         :param projects: The projects of this PeopleLong.  # noqa: E501
         :type projects: List[str]
         """
         self.swagger_types = {
-            'people_id': str,
-            'cilogon_uid': str,
+            'uuid': str,
+            'cilogon_id': str,
             'name': str,
+            'email': str,
+            'eppn': str,
             'roles': List[str],
             'projects': List[str]
         }
 
         self.attribute_map = {
-            'people_id': 'people_id',
-            'cilogon_uid': 'cilogon_uid',
+            'uuid': 'uuid',
+            'cilogon_id': 'cilogon_id',
             'name': 'name',
+            'email': 'email',
+            'eppn': 'eppn',
             'roles': 'roles',
             'projects': 'projects'
         }
-        self._people_id = people_id
-        self._cilogon_uid = cilogon_uid
+        self._uuid = uuid
+        self._cilogon_id = cilogon_id
         self._name = name
+        self._email = email
+        self._eppn = eppn
         self._roles = roles
         self._projects = projects
 
@@ -61,46 +71,46 @@ class PeopleLong(Model):
         return util.deserialize_model(dikt, cls)
 
     @property
-    def people_id(self) -> str:
-        """Gets the people_id of this PeopleLong.
+    def uuid(self) -> str:
+        """Gets the uuid of this PeopleLong.
 
 
-        :return: The people_id of this PeopleLong.
+        :return: The uuid of this PeopleLong.
         :rtype: str
         """
-        return self._people_id
+        return self._uuid
 
-    @people_id.setter
-    def people_id(self, people_id: str):
-        """Sets the people_id of this PeopleLong.
+    @uuid.setter
+    def uuid(self, uuid: str):
+        """Sets the uuid of this PeopleLong.
 
 
-        :param people_id: The people_id of this PeopleLong.
-        :type people_id: str
+        :param uuid: The uuid of this PeopleLong.
+        :type uuid: str
         """
 
-        self._people_id = people_id
+        self._uuid = uuid
 
     @property
-    def cilogon_uid(self) -> str:
-        """Gets the cilogon_uid of this PeopleLong.
+    def cilogon_id(self) -> str:
+        """Gets the cilogon_id of this PeopleLong.
 
 
-        :return: The cilogon_uid of this PeopleLong.
+        :return: The cilogon_id of this PeopleLong.
         :rtype: str
         """
-        return self._cilogon_uid
+        return self._cilogon_id
 
-    @cilogon_uid.setter
-    def cilogon_uid(self, cilogon_uid: str):
-        """Sets the cilogon_uid of this PeopleLong.
+    @cilogon_id.setter
+    def cilogon_id(self, cilogon_id: str):
+        """Sets the cilogon_id of this PeopleLong.
 
 
-        :param cilogon_uid: The cilogon_uid of this PeopleLong.
-        :type cilogon_uid: str
+        :param cilogon_id: The cilogon_id of this PeopleLong.
+        :type cilogon_id: str
         """
 
-        self._cilogon_uid = cilogon_uid
+        self._cilogon_id = cilogon_id
 
     @property
     def name(self) -> str:
@@ -122,6 +132,48 @@ class PeopleLong(Model):
         """
 
         self._name = name
+
+    @property
+    def email(self) -> str:
+        """Gets the email of this PeopleLong.
+
+
+        :return: The email of this PeopleLong.
+        :rtype: str
+        """
+        return self._email
+
+    @email.setter
+    def email(self, email: str):
+        """Sets the email of this PeopleLong.
+
+
+        :param email: The email of this PeopleLong.
+        :type email: str
+        """
+
+        self._email = email
+
+    @property
+    def eppn(self) -> str:
+        """Gets the eppn of this PeopleLong.
+
+
+        :return: The eppn of this PeopleLong.
+        :rtype: str
+        """
+        return self._eppn
+
+    @eppn.setter
+    def eppn(self, eppn: str):
+        """Sets the eppn of this PeopleLong.
+
+
+        :param eppn: The eppn of this PeopleLong.
+        :type eppn: str
+        """
+
+        self._eppn = eppn
 
     @property
     def roles(self) -> List[str]:

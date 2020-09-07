@@ -28,11 +28,11 @@ paths:
       tags:
       - default
       summary: version
-      description: version
+      description: Version
       operationId: version_get
       responses:
         "200":
-          description: version
+          description: OK
           content:
             application/json:
               schema:
@@ -43,7 +43,7 @@ paths:
       tags:
       - projects
       summary: list of projects
-      description: list of projects
+      description: List of projects
       operationId: projects_get
       responses:
         "200":
@@ -61,15 +61,15 @@ paths:
         "5XX":
           description: Unexpected error
       x-openapi-router-controller: swagger_server.controllers.projects_controller
-  /projects/{PROJECT_ID}:
+  /projects/{uuid}:
     get:
       tags:
       - projects
       summary: project details
-      description: project details
-      operationId: projects_project_idget
+      description: Project details
+      operationId: projects_uuid_get
       parameters:
-      - name: PROJECT_ID
+      - name: uuid
         in: path
         description: Project identifier as UUID
         required: true
@@ -98,7 +98,7 @@ paths:
       tags:
       - projects
       summary: create new project
-      description: create new project
+      description: Create new project
       operationId: projects_create_post
       parameters:
       - name: name
@@ -117,7 +117,7 @@ paths:
           type: string
       - name: facility
         in: query
-        required: false
+        required: true
         style: form
         explode: true
         schema:
@@ -133,6 +133,7 @@ paths:
             type: string
       - name: project_owners
         in: query
+        description: Array of project owners as UUID
         required: false
         style: form
         explode: false
@@ -142,6 +143,7 @@ paths:
             type: string
       - name: project_members
         in: query
+        description: Array of project members as UUID
         required: false
         style: form
         explode: false
@@ -170,10 +172,10 @@ paths:
       tags:
       - projects
       summary: update an existing project
-      description: update an existing project name, description or facility
+      description: Update an existing project name, description or facility
       operationId: projects_update_put
       parameters:
-      - name: project_id
+      - name: uuid
         in: query
         required: true
         style: form
@@ -222,10 +224,10 @@ paths:
       tags:
       - projects
       summary: add tags to an existing project
-      description: add tags to an existing project
+      description: Add tags to an existing project
       operationId: projects_add_tags_put
       parameters:
-      - name: project_id
+      - name: uuid
         in: query
         required: true
         style: form
@@ -262,10 +264,10 @@ paths:
       tags:
       - projects
       summary: add owners to an existing project
-      description: add owners to an existing project
+      description: Add owners to an existing project
       operationId: projects_add_owners_put
       parameters:
-      - name: project_id
+      - name: uuid
         in: query
         required: true
         style: form
@@ -274,6 +276,7 @@ paths:
           type: string
       - name: project_owners
         in: query
+        description: Array of project owners as UUID
         required: false
         style: form
         explode: false
@@ -302,10 +305,10 @@ paths:
       tags:
       - projects
       summary: add members to an existing project
-      description: add members to an existing project
+      description: Add members to an existing project
       operationId: projects_add_members_put
       parameters:
-      - name: project_id
+      - name: uuid
         in: query
         required: true
         style: form
@@ -314,6 +317,7 @@ paths:
           type: string
       - name: project_members
         in: query
+        description: Array of project members as UUID
         required: false
         style: form
         explode: false
@@ -342,10 +346,10 @@ paths:
       tags:
       - projects
       summary: remove tags to an existing project
-      description: remove tags to an existing project
+      description: Remove tags to an existing project
       operationId: projects_remove_tags_put
       parameters:
-      - name: project_id
+      - name: uuid
         in: query
         required: true
         style: form
@@ -382,10 +386,10 @@ paths:
       tags:
       - projects
       summary: remove owners to an existing project
-      description: remove owners to an existing project
+      description: Remove owners to an existing project
       operationId: projects_remove_owners_put
       parameters:
-      - name: project_id
+      - name: uuid
         in: query
         required: true
         style: form
@@ -394,6 +398,7 @@ paths:
           type: string
       - name: project_owners
         in: query
+        description: Array of project owners as UUID
         required: false
         style: form
         explode: false
@@ -422,10 +427,10 @@ paths:
       tags:
       - projects
       summary: remove members to an existing project
-      description: remove members to an existing project
+      description: Remove members to an existing project
       operationId: projects_remove_members_put
       parameters:
-      - name: project_id
+      - name: uuid
         in: query
         required: true
         style: form
@@ -434,6 +439,7 @@ paths:
           type: string
       - name: project_members
         in: query
+        description: Array of project members as UUID
         required: false
         style: form
         explode: false
@@ -462,10 +468,10 @@ paths:
       tags:
       - projects
       summary: delete existing project
-      description: delete existing project
+      description: Delete existing project
       operationId: projects_delete_delete
       parameters:
-      - name: PROJECT_ID
+      - name: uuid
         in: query
         description: Project identifier as UUID
         required: true
@@ -490,7 +496,7 @@ paths:
       tags:
       - people
       summary: list of people
-      description: list of people
+      description: List of people
       operationId: people_get
       responses:
         "200":
@@ -511,15 +517,15 @@ paths:
         "5XX":
           description: Unexpected error
       x-openapi-router-controller: swagger_server.controllers.people_controller
-  /people/{PEOPLE_ID}:
+  /people/{uuid}:
     get:
       tags:
       - people
       summary: person details
-      description: person details
-      operationId: people_people_idget
+      description: Person details
+      operationId: people_uuid_get
       parameters:
-      - name: PEOPLE_ID
+      - name: uuid
         in: path
         description: People identifier as UUID
         required: true
@@ -547,7 +553,7 @@ components:
   schemas:
     Project_short:
       properties:
-        project_id:
+        uuid:
           type: string
         name:
           type: string
@@ -556,13 +562,13 @@ components:
         facility:
           type: string
       example:
-        project_id: project_id
         name: name
         description: description
+        uuid: uuid
         facility: facility
     Project_long:
       properties:
-        project_id:
+        uuid:
           type: string
         name:
           type: string
@@ -597,7 +603,6 @@ components:
         project_leads:
         - project_leads
         - project_leads
-        project_id: project_id
         facility_operators:
         - facility_operators
         - facility_operators
@@ -606,29 +611,34 @@ components:
         project_owners:
         - project_owners
         - project_owners
+        uuid: uuid
         facility: facility
         tags:
         - tags
         - tags
     People_short:
       properties:
-        people_id:
-          type: string
-        cilogon_uid:
+        uuid:
           type: string
         name:
           type: string
+        email:
+          type: string
       example:
-        people_id: people_id
-        cilogon_uid: cilogon_uid
         name: name
+        uuid: uuid
+        email: email
     People_long:
       properties:
-        people_id:
+        uuid:
           type: string
-        cilogon_uid:
+        cilogon_id:
           type: string
         name:
+          type: string
+        email:
+          type: string
+        eppn:
           type: string
         roles:
           type: array
@@ -639,15 +649,17 @@ components:
           items:
             type: string
       example:
-        people_id: people_id
+        cilogon_id: cilogon_id
         projects:
         - projects
         - projects
-        cilogon_uid: cilogon_uid
+        eppn: eppn
         roles:
         - roles
         - roles
         name: name
+        uuid: uuid
+        email: email
     Version:
       properties:
         version:

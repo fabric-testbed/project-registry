@@ -24,13 +24,13 @@ class TestPeopleController(BaseTestCase):
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
 
-    def test_people_people_idget(self):
-        """Test case for people_people_idget
+    def test_people_uuid_get(self):
+        """Test case for people_uuid_get
 
         person details
         """
         response = self.client.open(
-            '//people/{PEOPLE_ID}'.format(people_id='people_id_example'),
+            '//people/{uuid}'.format(uuid='uuid_example'),
             method='GET')
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))

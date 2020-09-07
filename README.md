@@ -18,11 +18,15 @@ Python (Flask) based ReSTful API service for FABRIC Project Registry management
 
 ## <a name="about"></a>About
 
-The Project Registry maintains a separate persistent database of projects storing meta-information about each project (e.g. description, purpose) and maintaining a log of actions on the project. Current project membership and roles are maintained and asserted via COmanage.
+The Project Registry manages FABRIC project creation and membership via a REST API. Recorded project information is a combination of CILOgon/COmanage identity and authorization attributes along with internal meta-information about each project. 
+
+Current project membership and roles are maintained and asserted via COmanage. COmanage data represents the roles (groups or permissions) an individual would have within the scope of one or more projects within FABRIC.
+
+The Project Registry also maintains a separate persistent database of projects storing meta-information about each project (e.g. description, purpose) and maintaining a log of actions for each project. COmanage is treated as the single source of "truth" and then augmented by project meta-information which is stored to a separate persistent database. COmanage information is continuously monitored such that no role based project level decision is made without first verifying identity and role via COmanage.
 
 The principal policies guiding the development of the project registry are documented in [fabric-testbed/Authz](https://github.com/fabric-testbed/Authz/tree/master/policies)
 
-The Project Registry is a ReSTful (Representational State Transfer) service implementation using Swagger tooling to define the API specification using OpenAPI
+The Project Registry is a ReSTful (Representational State Transfer) service implementation using Swagger tooling to define the API specification using the OpenAPI specification.
 
 **What Is OpenAPI?**
 
@@ -48,12 +52,14 @@ Swagger is a set of open-source tools built around the OpenAPI Specification tha
 A series of scripts have been created to automate common deployment activities and reside within the `scripts` directory.
 
 ```console
-$ tree -L 1 ./scripts
-./scripts
-├── README.md                        # The document you are reading now
-├── run-local-development-server.sh  # Launch local server using Flask
-├── run-local-production-server.sh   # Launch local server using uWSGI
-└── update-swagger-stub.sh           # Format a new python-flask export from swagger
+$ tree -L 1 scripts
+scripts
+├── README.md                         # Description of each script
+├── run-docker-development-server.sh  # Launch docker-compose configuration
+├── run-local-database.sh             # Launch local database in Docker
+├── run-local-flask-server.sh         # Launch local server using Flask
+├── run-local-uwsgi-server.sh         # Launch local server using uWSGI
+└── update-swagger-stub.sh            # Format a new python-flask export from swagger
 ```
 
 Detailed use for each can be found in the [README located in the scripts directory](./scripts)
@@ -72,20 +78,26 @@ TODO
 
 ## <a name="apispec"></a>API Specification
 
+## Overview
+
+The project registry enforces role based access as defined by the FABRIC COmanage registry.
+
+![overview](images/project-registry.jpg)
+
 ### Terminology notes
 
-`PROJECT_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `e6f42656-15db-4b4f-af90-00492ca603c1`)
+`PROJECT_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `d505ea38-c409-42e7-833c-24843e8b0aed`)
 
 `PEOPLE_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `ea806951-a22e-4e85-bc70-4ce74b1967b9`)
 
-`CILOGON_ID` - unique person identifier based on CILogon `sub` attribute (e.g. `http://cilogon.org/serverA/users/242181`)
+`CILOGON_ID` - unique person identifier based on CILogon `sub` attribute (e.g. `http://cilogon.org/serverA/users/123456`)
 
-`ROLES` - project related roles that can be one or more of:
+`ROLES` - project related roles that can be one or more of (e.g. project id =`d505ea38-c409-42e7-833c-24843e8b0aed`):
 
-- Project Lead (e.g. `CO:COU:FABRIC-ProjectLead:members:active`)
-- Facility Operator (e.g. `CO:COU:FABRIC-FacilityOperator:members:active`)
-- Project Owner (e.g. `CO:COU:FABRIC-ProjectOwner:members:active`)
-- Project Member (e.g. `CO:COU:FABRIC-ProjectMember:members:active`)
+- Facility Operator (e.g. `CO:COU:facility-operator:members:active`)
+- Project Lead (e.g. `CO:COU:d505ea38-c409-42e7-833c-24843e8b0aed-pl:members:active`)
+- Project Owner (e.g. `CO:COU:d505ea38-c409-42e7-833c-24843e8b0aed-po:members:active`)
+- Project Member (e.g. `CO:COU:d505ea38-c409-42e7-833c-24843e8b0aed-pm:members:active`)
 
 `TAGS` - additional attributes applied at the project level and managed by the Facility Operator, for example:
 
@@ -131,7 +143,7 @@ API `/people`:
 Resource | Action | Input | Output
 :--------|:----:|:---:|:---:
 `/people` | GET: list of all people | NA | Array of People Short format
-`/people/{PEOPLE_ID}` | GET: singular person details | `PEOPLE_ID` as UUID | People Long format
+`/people/{uuid}` | GET: singular person details | uuid as `PEOPLE_ID` | People Long format
 
 Example: People Long format
 
@@ -178,7 +190,7 @@ Resource | Action | Input | Output
 `/projects/remove_members` | PUT: remove existing people from members role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
 `/projects/remove_owners` | PUT: remove existing people from owners role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
 `/projects/remove_tags` | PUT: remove existing tag | `PROJECT_ID`, array of tags | Project Long format
-`/projects/{PROJECT_ID}` | GET: singular project details | `PROJECT_ID` | Project Long format
+`/projects/{uuid}` | GET: singular project details | uuid as `PROJECT_ID` | Project Long format
 
 Example: Project Long format
 

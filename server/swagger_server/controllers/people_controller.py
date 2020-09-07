@@ -10,7 +10,7 @@ from swagger_server.response_code import people_controller as rc
 def people_get():  # noqa: E501
     """list of people
 
-    list of people # noqa: E501
+    List of people # noqa: E501
 
 
     :rtype: List[PeopleShort]
@@ -18,14 +18,14 @@ def people_get():  # noqa: E501
     return rc.people_get()
 
 
-def people_people_idget(people_id):  # noqa: E501
+def people_uuid_get(uuid):  # noqa: E501
     """person details
 
-    person details # noqa: E501
+    Person details # noqa: E501
 
-    :param people_id: People identifier as UUID
-    :type people_id: str
+    :param uuid: People identifier as UUID
+    :type uuid: str
 
     :rtype: PeopleLong
     """
-    return rc.people_people_idget(people_id)
+    return rc.people_uuid_get(uuid)

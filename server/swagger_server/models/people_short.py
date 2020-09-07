@@ -14,30 +14,30 @@ class PeopleShort(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, people_id: str=None, cilogon_uid: str=None, name: str=None):  # noqa: E501
+    def __init__(self, uuid: str=None, name: str=None, email: str=None):  # noqa: E501
         """PeopleShort - a model defined in Swagger
 
-        :param people_id: The people_id of this PeopleShort.  # noqa: E501
-        :type people_id: str
-        :param cilogon_uid: The cilogon_uid of this PeopleShort.  # noqa: E501
-        :type cilogon_uid: str
+        :param uuid: The uuid of this PeopleShort.  # noqa: E501
+        :type uuid: str
         :param name: The name of this PeopleShort.  # noqa: E501
         :type name: str
+        :param email: The email of this PeopleShort.  # noqa: E501
+        :type email: str
         """
         self.swagger_types = {
-            'people_id': str,
-            'cilogon_uid': str,
-            'name': str
+            'uuid': str,
+            'name': str,
+            'email': str
         }
 
         self.attribute_map = {
-            'people_id': 'people_id',
-            'cilogon_uid': 'cilogon_uid',
-            'name': 'name'
+            'uuid': 'uuid',
+            'name': 'name',
+            'email': 'email'
         }
-        self._people_id = people_id
-        self._cilogon_uid = cilogon_uid
+        self._uuid = uuid
         self._name = name
+        self._email = email
 
     @classmethod
     def from_dict(cls, dikt) -> 'PeopleShort':
@@ -51,46 +51,25 @@ class PeopleShort(Model):
         return util.deserialize_model(dikt, cls)
 
     @property
-    def people_id(self) -> str:
-        """Gets the people_id of this PeopleShort.
+    def uuid(self) -> str:
+        """Gets the uuid of this PeopleShort.
 
 
-        :return: The people_id of this PeopleShort.
+        :return: The uuid of this PeopleShort.
         :rtype: str
         """
-        return self._people_id
+        return self._uuid
 
-    @people_id.setter
-    def people_id(self, people_id: str):
-        """Sets the people_id of this PeopleShort.
+    @uuid.setter
+    def uuid(self, uuid: str):
+        """Sets the uuid of this PeopleShort.
 
 
-        :param people_id: The people_id of this PeopleShort.
-        :type people_id: str
+        :param uuid: The uuid of this PeopleShort.
+        :type uuid: str
         """
 
-        self._people_id = people_id
-
-    @property
-    def cilogon_uid(self) -> str:
-        """Gets the cilogon_uid of this PeopleShort.
-
-
-        :return: The cilogon_uid of this PeopleShort.
-        :rtype: str
-        """
-        return self._cilogon_uid
-
-    @cilogon_uid.setter
-    def cilogon_uid(self, cilogon_uid: str):
-        """Sets the cilogon_uid of this PeopleShort.
-
-
-        :param cilogon_uid: The cilogon_uid of this PeopleShort.
-        :type cilogon_uid: str
-        """
-
-        self._cilogon_uid = cilogon_uid
+        self._uuid = uuid
 
     @property
     def name(self) -> str:
@@ -112,3 +91,24 @@ class PeopleShort(Model):
         """
 
         self._name = name
+
+    @property
+    def email(self) -> str:
+        """Gets the email of this PeopleShort.
+
+
+        :return: The email of this PeopleShort.
+        :rtype: str
+        """
+        return self._email
+
+    @email.setter
+    def email(self, email: str):
+        """Sets the email of this PeopleShort.
+
+
+        :param email: The email of this PeopleShort.
+        :type email: str
+        """
+
+        self._email = email

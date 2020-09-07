@@ -18,7 +18,7 @@ class TestProjectsController(BaseTestCase):
 
         add members to an existing project
         """
-        query_string = [('project_id', 'project_id_example'),
+        query_string = [('uuid', 'uuid_example'),
                         ('project_members', 'project_members_example')]
         response = self.client.open(
             '//projects/add_members',
@@ -32,7 +32,7 @@ class TestProjectsController(BaseTestCase):
 
         add owners to an existing project
         """
-        query_string = [('project_id', 'project_id_example'),
+        query_string = [('uuid', 'uuid_example'),
                         ('project_owners', 'project_owners_example')]
         response = self.client.open(
             '//projects/add_owners',
@@ -46,7 +46,7 @@ class TestProjectsController(BaseTestCase):
 
         add tags to an existing project
         """
-        query_string = [('project_id', 'project_id_example'),
+        query_string = [('uuid', 'uuid_example'),
                         ('tags', 'tags_example')]
         response = self.client.open(
             '//projects/add_tags',
@@ -78,7 +78,7 @@ class TestProjectsController(BaseTestCase):
 
         delete existing project
         """
-        query_string = [('project_id', 'project_id_example')]
+        query_string = [('uuid', 'uuid_example')]
         response = self.client.open(
             '//projects/delete',
             method='DELETE',
@@ -97,23 +97,12 @@ class TestProjectsController(BaseTestCase):
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
 
-    def test_projects_project_idget(self):
-        """Test case for projects_project_idget
-
-        project details
-        """
-        response = self.client.open(
-            '//projects/{PROJECT_ID}'.format(project_id='project_id_example'),
-            method='GET')
-        self.assert200(response,
-                       'Response body is : ' + response.data.decode('utf-8'))
-
     def test_projects_remove_members_put(self):
         """Test case for projects_remove_members_put
 
         remove members to an existing project
         """
-        query_string = [('project_id', 'project_id_example'),
+        query_string = [('uuid', 'uuid_example'),
                         ('project_members', 'project_members_example')]
         response = self.client.open(
             '//projects/remove_members',
@@ -127,7 +116,7 @@ class TestProjectsController(BaseTestCase):
 
         remove owners to an existing project
         """
-        query_string = [('project_id', 'project_id_example'),
+        query_string = [('uuid', 'uuid_example'),
                         ('project_owners', 'project_owners_example')]
         response = self.client.open(
             '//projects/remove_owners',
@@ -141,7 +130,7 @@ class TestProjectsController(BaseTestCase):
 
         remove tags to an existing project
         """
-        query_string = [('project_id', 'project_id_example'),
+        query_string = [('uuid', 'uuid_example'),
                         ('tags', 'tags_example')]
         response = self.client.open(
             '//projects/remove_tags',
@@ -155,7 +144,7 @@ class TestProjectsController(BaseTestCase):
 
         update an existing project
         """
-        query_string = [('project_id', 'project_id_example'),
+        query_string = [('uuid', 'uuid_example'),
                         ('name', 'name_example'),
                         ('description', 'description_example'),
                         ('facility', 'facility_example')]
@@ -163,6 +152,17 @@ class TestProjectsController(BaseTestCase):
             '//projects/update',
             method='PUT',
             query_string=query_string)
+        self.assert200(response,
+                       'Response body is : ' + response.data.decode('utf-8'))
+
+    def test_projects_uuid_get(self):
+        """Test case for projects_uuid_get
+
+        project details
+        """
+        response = self.client.open(
+            '//projects/{uuid}'.format(uuid='uuid_example'),
+            method='GET')
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
 

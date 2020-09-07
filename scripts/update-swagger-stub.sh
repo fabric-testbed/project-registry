@@ -10,8 +10,16 @@ FILES_TO_COPY=(
   requirements.txt
   swagger_server/__main__.py
   swagger_server/__init__.py
+  swagger_server/config.py
   wsgi.py
-  pr_uwsgi.ini
+)
+
+DIRS_TO_COPY=(
+  swagger_server/auth
+  swagger_server/database
+  swagger_server/ini
+  swagger_server/response_code
+  ini
 )
 
 # check for new server-stub directory
@@ -19,13 +27,15 @@ if [ ! -d "$STUB_DIR" ]; then
   echo "[ERROR] Unable to find ${STUB_DIR}"
 fi
 
-# copy response_code contents to new server-stub
-echo "[INFO] copy swagger_server/response_code to new server-stub"
-cp -r server/swagger_server/response_code $STUB_DIR/swagger_server/
+# copy directories from server to new server-stub
+for f in "${DIRS_TO_COPY[@]}"; do
+  echo "[INFO] copy directory: ${f} to new server-stub"
+  cp -r server/${f} $STUB_DIR/${f}
+done
 
 # copy files from server to new server-stub
 for f in "${FILES_TO_COPY[@]}"; do
-  echo "[INFO] copy ${f} to new server-stub"
+  echo "[INFO] copy file: ${f} to new server-stub"
   cp server/${f} $STUB_DIR/${f}
 done
 
@@ -40,8 +50,8 @@ while read f; do
     if [[ $line == def* ]]; then
       echo "  - ${line}"
       func_name=$(echo $line | cut -d ':' -f 1 | cut -d ' ' -f 2-)
-      echo "    ${func_name}"
-      sed -i "0,/'do some magic!'/s//rc.${func_name}/" $STUB_DIR/swagger_server/controllers/${f}
+      echo "    ${func_name//=None/}"
+      sed -i "0,/'do some magic!'/s//rc.${func_name//=None/}/" $STUB_DIR/swagger_server/controllers/${f}
     fi
   done < <(cat $STUB_DIR/swagger_server/controllers/${f})
 done < <(ls -1 $STUB_DIR/swagger_server/controllers | grep -v '^__*')

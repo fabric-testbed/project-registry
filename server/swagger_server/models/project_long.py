@@ -14,11 +14,11 @@ class ProjectLong(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, project_id: str=None, name: str=None, description: str=None, facility: str=None, tags: List[str]=None, project_leads: List[str]=None, facility_operators: List[str]=None, project_owners: List[str]=None, project_members: List[str]=None):  # noqa: E501
+    def __init__(self, uuid: str=None, name: str=None, description: str=None, facility: str=None, tags: List[str]=None, project_leads: List[str]=None, facility_operators: List[str]=None, project_owners: List[str]=None, project_members: List[str]=None):  # noqa: E501
         """ProjectLong - a model defined in Swagger
 
-        :param project_id: The project_id of this ProjectLong.  # noqa: E501
-        :type project_id: str
+        :param uuid: The uuid of this ProjectLong.  # noqa: E501
+        :type uuid: str
         :param name: The name of this ProjectLong.  # noqa: E501
         :type name: str
         :param description: The description of this ProjectLong.  # noqa: E501
@@ -37,7 +37,7 @@ class ProjectLong(Model):
         :type project_members: List[str]
         """
         self.swagger_types = {
-            'project_id': str,
+            'uuid': str,
             'name': str,
             'description': str,
             'facility': str,
@@ -49,7 +49,7 @@ class ProjectLong(Model):
         }
 
         self.attribute_map = {
-            'project_id': 'project_id',
+            'uuid': 'uuid',
             'name': 'name',
             'description': 'description',
             'facility': 'facility',
@@ -59,7 +59,7 @@ class ProjectLong(Model):
             'project_owners': 'project_owners',
             'project_members': 'project_members'
         }
-        self._project_id = project_id
+        self._uuid = uuid
         self._name = name
         self._description = description
         self._facility = facility
@@ -81,25 +81,25 @@ class ProjectLong(Model):
         return util.deserialize_model(dikt, cls)
 
     @property
-    def project_id(self) -> str:
-        """Gets the project_id of this ProjectLong.
+    def uuid(self) -> str:
+        """Gets the uuid of this ProjectLong.
 
 
-        :return: The project_id of this ProjectLong.
+        :return: The uuid of this ProjectLong.
         :rtype: str
         """
-        return self._project_id
+        return self._uuid
 
-    @project_id.setter
-    def project_id(self, project_id: str):
-        """Sets the project_id of this ProjectLong.
+    @uuid.setter
+    def uuid(self, uuid: str):
+        """Sets the uuid of this ProjectLong.
 
 
-        :param project_id: The project_id of this ProjectLong.
-        :type project_id: str
+        :param uuid: The uuid of this ProjectLong.
+        :type uuid: str
         """
 
-        self._project_id = project_id
+        self._uuid = uuid
 
     @property
     def name(self) -> str:

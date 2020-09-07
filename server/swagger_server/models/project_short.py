@@ -14,11 +14,11 @@ class ProjectShort(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, project_id: str=None, name: str=None, description: str=None, facility: str=None):  # noqa: E501
+    def __init__(self, uuid: str=None, name: str=None, description: str=None, facility: str=None):  # noqa: E501
         """ProjectShort - a model defined in Swagger
 
-        :param project_id: The project_id of this ProjectShort.  # noqa: E501
-        :type project_id: str
+        :param uuid: The uuid of this ProjectShort.  # noqa: E501
+        :type uuid: str
         :param name: The name of this ProjectShort.  # noqa: E501
         :type name: str
         :param description: The description of this ProjectShort.  # noqa: E501
@@ -27,19 +27,19 @@ class ProjectShort(Model):
         :type facility: str
         """
         self.swagger_types = {
-            'project_id': str,
+            'uuid': str,
             'name': str,
             'description': str,
             'facility': str
         }
 
         self.attribute_map = {
-            'project_id': 'project_id',
+            'uuid': 'uuid',
             'name': 'name',
             'description': 'description',
             'facility': 'facility'
         }
-        self._project_id = project_id
+        self._uuid = uuid
         self._name = name
         self._description = description
         self._facility = facility
@@ -56,25 +56,25 @@ class ProjectShort(Model):
         return util.deserialize_model(dikt, cls)
 
     @property
-    def project_id(self) -> str:
-        """Gets the project_id of this ProjectShort.
+    def uuid(self) -> str:
+        """Gets the uuid of this ProjectShort.
 
 
-        :return: The project_id of this ProjectShort.
+        :return: The uuid of this ProjectShort.
         :rtype: str
         """
-        return self._project_id
+        return self._uuid
 
-    @project_id.setter
-    def project_id(self, project_id: str):
-        """Sets the project_id of this ProjectShort.
+    @uuid.setter
+    def uuid(self, uuid: str):
+        """Sets the uuid of this ProjectShort.
 
 
-        :param project_id: The project_id of this ProjectShort.
-        :type project_id: str
+        :param uuid: The uuid of this ProjectShort.
+        :type uuid: str
         """
 
-        self._project_id = project_id
+        self._uuid = uuid
 
     @property
     def name(self) -> str:

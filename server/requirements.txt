@@ -1,4 +1,8 @@
+configparser
 connexion
+flask-sqlalchemy
+ldap3
+psycopg2-binary
 python_dateutil
 setuptools
 swagger-ui-bundle
