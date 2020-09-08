@@ -31,8 +31,7 @@ if [[ "$1" = 'run_server' ]]; then
 
     # update swagger.yaml file
     if [[ ! -z ${SWAGGER_HOST} ]]; then
-        sed -i '/servers:/a - url: http://'${SWAGGER_HOST}'/' /code/swagger_server/swagger/swagger.yaml
-        #sed -i 's/host.*/host: \"'${SWAGGER_HOST}'\"/g' /code/swagger_server/swagger/swagger.yaml
+        sed -i '/servers:/!b;n;c- url: http://'${SWAGGER_HOST}'/' /code/swagger_server/swagger/swagger.yaml
     fi
 
     # run the server
