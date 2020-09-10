@@ -18,7 +18,7 @@ Python (Flask) based ReSTful API service for FABRIC Project Registry management
 
 ## <a name="about"></a>About
 
-The Project Registry manages FABRIC project creation and membership via a REST API. Recorded project information is a combination of CILOgon/COmanage identity and authorization attributes along with internal meta-information about each project. 
+The Project Registry manages FABRIC project creation and membership via a REST API. Recorded project information is a combination of CILogon/COmanage identity and authorization attributes along with internal meta-information about each project. 
 
 Current project membership and roles are maintained and asserted via COmanage. COmanage data represents the roles (groups or permissions) an individual would have within the scope of one or more projects within FABRIC.
 
@@ -88,7 +88,7 @@ The project registry enforces role based access as defined by the FABRIC COmanag
 
 `PROJECT_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `d505ea38-c409-42e7-833c-24843e8b0aed`)
 
-`PEOPLE_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `ea806951-a22e-4e85-bc70-4ce74b1967b9`)
+`PEOPLE_ID` - unique people identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `ea806951-a22e-4e85-bc70-4ce74b1967b9`)
 
 `CILOGON_ID` - unique person identifier based on CILogon `sub` attribute (e.g. `http://cilogon.org/serverA/users/123456`)
 
@@ -149,17 +149,19 @@ Example: People Long format
 
 ```json
 {
-  "cilogon_uid": "CILogon sub claim as string",
+  "cilogon_id": "CILogon sub claim as string",
+  "email": "CILogon email claim as string",
+  "eppn": "CILogon eppn claiim as string",
   "name": "CILogon name claim as string",
-  "people_id": "PEOPLE_ID/UUID as string",
   "projects": [
-    "PROJECT_ID/UUID as string",
-    "PROJECT_ID/UUID as string"
+    "PROJECT_ID(uuid) as string",
+    "PROJECT_ID(uuid) as string"
   ],
   "roles": [
     "COmanage COU as string",
     "COmanage COU as string"
-  ]
+  ],
+  "uuid": "PEOPLE_ID(uuid) as string"
 }
 ```
 
@@ -167,9 +169,9 @@ Example: People Short format
 
 ```json
 {
-  "cilogon_uid": "CILogon sub claim as string",
+  "email": "CILogon email claim as string",
   "name": "CILogon name claim as string",
-  "people_id": "PEOPLE_ID/UUID as string"
+  "uuid": "PEOPLE_ID(uuid) as string"
 }
 ```
 
@@ -199,27 +201,27 @@ Example: Project Long format
   "description": "Project description as string",
   "facility": "Facility description as string",
   "facility_operators": [
-    "PEOPLE_ID/UUID as string",
-    "PEOPLE_ID/UUID as string"
+    "PEOPLE_ID(uuid) as string",
+    "PEOPLE_ID(uuid) as string"
   ],
   "name": "Project name as string",
-  "project_id": "PROJECT_ID/UUID as string",
   "project_leads": [
-    "PEOPLE_ID/UUID as string",
-    "PEOPLE_ID/UUID as string"
+    "PEOPLE_ID(uuid) as string",
+    "PEOPLE_ID(uuid) as string"
   ],
   "project_members": [
-    "PEOPLE_ID/UUID as string",
-    "PEOPLE_ID/UUID as string"
+    "PEOPLE_ID(uuid) as string",
+    "PEOPLE_ID(uuid) as string"
   ],
   "project_owners": [
-    "PEOPLE_ID/UUID as string",
-    "PEOPLE_ID/UUID as string"
+    "PEOPLE_ID(uuid) as string",
+    "PEOPLE_ID(uuid) as string"
   ],
   "tags": [
     "Tag as string",
     "Tag as string"
-  ]
+  ],
+  "uuid": "PROJECT_ID(uuid) as string"
 }
 ```
 
@@ -230,7 +232,7 @@ Example: Project Short format
   "description": "Project description as string",
   "facility": "Facility descripton as string",
   "name": "Project name as string",
-  "project_id": "PROJECT_ID/UUID as string"
+  "uuid": "PROJECT_ID(uuid) as string"
 }
 ```
 
