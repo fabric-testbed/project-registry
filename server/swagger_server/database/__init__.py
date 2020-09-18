@@ -25,3 +25,4 @@ CONFIG_FILE = '../ini/pr_comanage.ini'
 CONFIG_SECTION = 'ldap'
 
 LDAP_PARAMS = config(filename=CONFIG_FILE, section=CONFIG_SECTION)
+TIMEZONE = 'America/New_York'

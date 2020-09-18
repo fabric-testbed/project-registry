@@ -88,15 +88,19 @@ def projects_delete_delete(uuid):  # noqa: E501
     return rc.projects_delete_delete(uuid)
 
 
-def projects_get():  # noqa: E501
+def projects_get(project_name=None, x_page_no=None):  # noqa: E501
     """list of projects
 
     List of projects # noqa: E501
 
+    :param project_name: Search Project by Name (ILIKE)
+    :type project_name: str
+    :param x_page_no: Page number of results (25 per page)
+    :type x_page_no: str
 
     :rtype: ProjectShort
     """
-    return rc.projects_get()
+    return rc.projects_get(project_name, x_page_no)
 
 
 def projects_remove_members_put(uuid, project_members=None):  # noqa: E501

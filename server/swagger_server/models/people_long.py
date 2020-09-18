@@ -6,6 +6,7 @@ from datetime import date, datetime  # noqa: F401
 from typing import List, Dict  # noqa: F401
 
 from swagger_server.models.base_model_ import Model
+from swagger_server.models.project_short import ProjectShort  # noqa: F401,E501
 from swagger_server import util
 
 
@@ -14,13 +15,13 @@ class PeopleLong(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, uuid: str=None, cilogon_id: str=None, name: str=None, email: str=None, eppn: str=None, roles: List[str]=None, projects: List[str]=None):  # noqa: E501
+    def __init__(self, uuid: str=None, oidc_claim_sub: str=None, name: str=None, email: str=None, eppn: str=None, roles: List[str]=None, projects: List[ProjectShort]=None):  # noqa: E501
         """PeopleLong - a model defined in Swagger
 
         :param uuid: The uuid of this PeopleLong.  # noqa: E501
         :type uuid: str
-        :param cilogon_id: The cilogon_id of this PeopleLong.  # noqa: E501
-        :type cilogon_id: str
+        :param oidc_claim_sub: The oidc_claim_sub of this PeopleLong.  # noqa: E501
+        :type oidc_claim_sub: str
         :param name: The name of this PeopleLong.  # noqa: E501
         :type name: str
         :param email: The email of this PeopleLong.  # noqa: E501
@@ -30,21 +31,21 @@ class PeopleLong(Model):
         :param roles: The roles of this PeopleLong.  # noqa: E501
         :type roles: List[str]
         :param projects: The projects of this PeopleLong.  # noqa: E501
-        :type projects: List[str]
+        :type projects: List[ProjectShort]
         """
         self.swagger_types = {
             'uuid': str,
-            'cilogon_id': str,
+            'oidc_claim_sub': str,
             'name': str,
             'email': str,
             'eppn': str,
             'roles': List[str],
-            'projects': List[str]
+            'projects': List[ProjectShort]
         }
 
         self.attribute_map = {
             'uuid': 'uuid',
-            'cilogon_id': 'cilogon_id',
+            'oidc_claim_sub': 'oidc_claim_sub',
             'name': 'name',
             'email': 'email',
             'eppn': 'eppn',
@@ -52,7 +53,7 @@ class PeopleLong(Model):
             'projects': 'projects'
         }
         self._uuid = uuid
-        self._cilogon_id = cilogon_id
+        self._oidc_claim_sub = oidc_claim_sub
         self._name = name
         self._email = email
         self._eppn = eppn
@@ -92,25 +93,25 @@ class PeopleLong(Model):
         self._uuid = uuid
 
     @property
-    def cilogon_id(self) -> str:
-        """Gets the cilogon_id of this PeopleLong.
+    def oidc_claim_sub(self) -> str:
+        """Gets the oidc_claim_sub of this PeopleLong.
 
 
-        :return: The cilogon_id of this PeopleLong.
+        :return: The oidc_claim_sub of this PeopleLong.
         :rtype: str
         """
-        return self._cilogon_id
+        return self._oidc_claim_sub
 
-    @cilogon_id.setter
-    def cilogon_id(self, cilogon_id: str):
-        """Sets the cilogon_id of this PeopleLong.
+    @oidc_claim_sub.setter
+    def oidc_claim_sub(self, oidc_claim_sub: str):
+        """Sets the oidc_claim_sub of this PeopleLong.
 
 
-        :param cilogon_id: The cilogon_id of this PeopleLong.
-        :type cilogon_id: str
+        :param oidc_claim_sub: The oidc_claim_sub of this PeopleLong.
+        :type oidc_claim_sub: str
         """
 
-        self._cilogon_id = cilogon_id
+        self._oidc_claim_sub = oidc_claim_sub
 
     @property
     def name(self) -> str:
@@ -197,22 +198,22 @@ class PeopleLong(Model):
         self._roles = roles
 
     @property
-    def projects(self) -> List[str]:
+    def projects(self) -> List[ProjectShort]:
         """Gets the projects of this PeopleLong.
 
 
         :return: The projects of this PeopleLong.
-        :rtype: List[str]
+        :rtype: List[ProjectShort]
         """
         return self._projects
 
     @projects.setter
-    def projects(self, projects: List[str]):
+    def projects(self, projects: List[ProjectShort]):
         """Sets the projects of this PeopleLong.
 
 
         :param projects: The projects of this PeopleLong.
-        :type projects: List[str]
+        :type projects: List[ProjectShort]
         """
 
         self._projects = projects

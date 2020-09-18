@@ -20,9 +20,10 @@ def create_tables():
             uuid VARCHAR(36) NOT NULL,
             name VARCHAR(255) NOT NULL,
             description VARCHAR(255) NOT NULL,
-            cou VARCHAR(255) NOT NULL,
             facility VARCHAR(255) NOT NULL,
-            CONSTRAINT projects_cou UNIQUE (cou)
+            created_by VARCHAR(36) NOT NULL,
+            created_time VARCHAR(255) NOT NULL,
+            CONSTRAINT projects_uuid UNIQUE (uuid)
         )
         """,
         """
@@ -32,13 +33,13 @@ def create_tables():
         CREATE TABLE fabric_people (
             id SERIAL PRIMARY KEY,
             uuid VARCHAR(36) NOT NULL,
-            cilogon_id VARCHAR(255) NOT NULL,
+            oidc_claim_sub VARCHAR(255) NOT NULL,
             name VARCHAR(255) NOT NULL,
             email VARCHAR(255) NOT NULL,
             eppn VARCHAR(255) NOT NULL,
             is_facility_operator BOOLEAN NOT NULL,
             is_project_lead BOOLEAN NOT NULL,
-            CONSTRAINT cilogon_uid UNIQUE (cilogon_id)
+            CONSTRAINT cilogon_uid UNIQUE (oidc_claim_sub)
         )
         """,
         """
@@ -49,32 +50,6 @@ def create_tables():
             id SERIAL PRIMARY KEY,
             version VARCHAR(255) NOT NULL,
             gitsha1 VARCHAR(255) NOT NULL
-        )
-        """,
-        """
-        DROP TABLE IF EXISTS facility_operators CASCADE 
-        """,
-        """
-        CREATE TABLE facility_operators (
-            id SERIAL PRIMARY KEY,
-            projects_id int NOT NULL,
-            people_id int NOT NULL,
-            FOREIGN KEY (projects_id) REFERENCES fabric_projects(id) ON UPDATE CASCADE,
-            FOREIGN KEY (people_id) REFERENCES fabric_people(id) ON UPDATE CASCADE,
-            CONSTRAINT facility_operators_duplicate UNIQUE (projects_id, people_id) 
-        )
-        """,
-        """
-        DROP TABLE IF EXISTS project_leads CASCADE 
-        """,
-        """
-        CREATE TABLE project_leads (
-            id SERIAL PRIMARY KEY,
-            projects_id int NOT NULL,
-            people_id int NOT NULL,
-            FOREIGN KEY (projects_id) REFERENCES fabric_projects(id) ON UPDATE CASCADE,
-            FOREIGN KEY (people_id) REFERENCES fabric_people(id) ON UPDATE CASCADE,
-            CONSTRAINT project_leads_duplicate UNIQUE (projects_id, people_id) 
         )
         """,
         """

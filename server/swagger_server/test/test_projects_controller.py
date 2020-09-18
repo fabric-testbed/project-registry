@@ -91,9 +91,13 @@ class TestProjectsController(BaseTestCase):
 
         list of projects
         """
+        query_string = [('project_name', 'project_name_example')]
+        headers = [('x_page_no', 'x_page_no_example')]
         response = self.client.open(
             '//projects',
-            method='GET')
+            method='GET',
+            headers=headers,
+            query_string=query_string)
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
 

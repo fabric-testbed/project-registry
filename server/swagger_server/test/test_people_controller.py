@@ -18,16 +18,33 @@ class TestPeopleController(BaseTestCase):
 
         list of people
         """
+        query_string = [('person_name', 'person_name_example')]
+        headers = [('x_page_no', 'x_page_no_example')]
         response = self.client.open(
             '//people',
-            method='GET')
+            method='GET',
+            headers=headers,
+            query_string=query_string)
+        self.assert200(response,
+                       'Response body is : ' + response.data.decode('utf-8'))
+
+    def test_people_oidc_claim_sub_get(self):
+        """Test case for people_oidc_claim_sub_get
+
+        person details by OIDC Claim sub
+        """
+        query_string = [('oidc_claim_sub', 'oidc_claim_sub_example')]
+        response = self.client.open(
+            '//people/oidc_claim_sub',
+            method='GET',
+            query_string=query_string)
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
 
     def test_people_uuid_get(self):
         """Test case for people_uuid_get
 
-        person details
+        person details by UUID
         """
         response = self.client.open(
             '//people/{uuid}'.format(uuid='uuid_example'),

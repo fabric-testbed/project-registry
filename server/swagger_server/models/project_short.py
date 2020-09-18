@@ -14,7 +14,7 @@ class ProjectShort(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, uuid: str=None, name: str=None, description: str=None, facility: str=None):  # noqa: E501
+    def __init__(self, uuid: str=None, name: str=None, description: str=None, facility: str=None, created_by: str=None):  # noqa: E501
         """ProjectShort - a model defined in Swagger
 
         :param uuid: The uuid of this ProjectShort.  # noqa: E501
@@ -25,24 +25,29 @@ class ProjectShort(Model):
         :type description: str
         :param facility: The facility of this ProjectShort.  # noqa: E501
         :type facility: str
+        :param created_by: The created_by of this ProjectShort.  # noqa: E501
+        :type created_by: str
         """
         self.swagger_types = {
             'uuid': str,
             'name': str,
             'description': str,
-            'facility': str
+            'facility': str,
+            'created_by': str
         }
 
         self.attribute_map = {
             'uuid': 'uuid',
             'name': 'name',
             'description': 'description',
-            'facility': 'facility'
+            'facility': 'facility',
+            'created_by': 'created_by'
         }
         self._uuid = uuid
         self._name = name
         self._description = description
         self._facility = facility
+        self._created_by = created_by
 
     @classmethod
     def from_dict(cls, dikt) -> 'ProjectShort':
@@ -138,3 +143,24 @@ class ProjectShort(Model):
         """
 
         self._facility = facility
+
+    @property
+    def created_by(self) -> str:
+        """Gets the created_by of this ProjectShort.
+
+
+        :return: The created_by of this ProjectShort.
+        :rtype: str
+        """
+        return self._created_by
+
+    @created_by.setter
+    def created_by(self, created_by: str):
+        """Sets the created_by of this ProjectShort.
+
+
+        :param created_by: The created_by of this ProjectShort.
+        :type created_by: str
+        """
+
+        self._created_by = created_by

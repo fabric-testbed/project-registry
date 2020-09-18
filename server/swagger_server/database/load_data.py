@@ -3,12 +3,14 @@ import re
 import sys
 from pprint import pprint
 from uuid import uuid4
+from pytz import timezone
+from datetime import datetime
 
 import psycopg2
 
 sys.path.append("..")
 
-from database import Session, LDAP_PARAMS
+from database import Session, LDAP_PARAMS, TIMEZONE
 from ldap3 import Connection, Server, ALL
 
 # Variables
@@ -17,6 +19,8 @@ from ldap3 import Connection, Server, ALL
 DEFAULT_NAME = 'INSERT_PROJECT_NAME'
 DEFAULT_DESCRIPTION = 'INSERT_PROJECT_DESCRIPTION'
 DEFAULT_FACILITY = 'INSERT_PROJECT_FACILITY'
+DEFAULT_CREATED_BY = None
+DEFAULT_CREATED_TIME = None
 
 # Attributes to request from COmanage LDAP
 ATTRIBUTES = [
@@ -31,25 +35,29 @@ ATTRIBUTES = [
 mock_cou = [
     'CO:COU:project-leads:members:active',
     'CO:COU:facility-operators:members:active',
-    'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef:members:active',
-    'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pl:members:active',
     'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
     'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-po:members:active'
 ]
+
 mock_people = [
     {
-        'cn': 'John Q. Public',
-        'eduPersonPrincipalName': 'public@project-registry.org',
+        'cn': 'System Administrator',
+        'eduPersonPrincipalName': 'sysadmin@project-registry.org',
         'isMemberOf': [
-            'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef:members:active',
-            'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pl:members:active',
+            'CO:COU:facility-operators:members:active'
+        ],
+        'mail': 'sysadmin@project-registry.org',
+        'uid': 'http://cilogon.org/serverA/users/000001'
+    },
+    {
+        'cn': 'John Q. Public',
+        'isMemberOf': [
             'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
             'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-po:members:active',
-            'CO:COU:facility-operators:members:active',
             'CO:COU:project-leads:members:active'
         ],
         'mail': 'public@project-registry.org',
-        'uid': 'http://cilogon.org/serverA/users/000001'
+        'uid': 'http://cilogon.org/serverA/users/000002'
     },
     {
         'cn': 'Eliza Fuller',
@@ -71,9 +79,8 @@ mock_people = [
         'cn': 'Yolanda Guerra',
         'eduPersonPrincipalName': 'yolanda@@project-registry.org',
         'isMemberOf': [
-            'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef:members:active',
             'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
-            'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-po:members:active'
+            'CO:COU:project-leads:members:active'
         ],
         'mail': 'yolandaguerra@not-project-registry.org',
         'uid': 'http://cilogon.org/serverT/users/24681357'
@@ -204,11 +211,11 @@ def load_project_data():
     cou_list = set(temp_list)
     for cou in cou_list:
         command = """
-        INSERT INTO fabric_projects(uuid, cou, name, description, facility)
-        VALUES ('{0}', 'CO:COU:{0}:members:active', '{1}', '{2}', '{3}')
-        ON CONFLICT ON CONSTRAINT projects_cou
+        INSERT INTO fabric_projects(uuid, name, description, facility, created_by, created_time)
+        VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}')
+        ON CONFLICT ON CONSTRAINT projects_uuid
         DO NOTHING
-        """.format(cou, DEFAULT_NAME, DEFAULT_DESCRIPTION, DEFAULT_FACILITY)
+        """.format(cou, DEFAULT_NAME, DEFAULT_DESCRIPTION, DEFAULT_FACILITY, DEFAULT_CREATED_BY, DEFAULT_CREATED_TIME)
         sql_list.append(command)
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to load project data")
@@ -221,10 +228,11 @@ def load_relationship_data(people):
     for person in people:
         # get people_id (pk) from fabric_people
         sql = """
-        SELECT id from fabric_people WHERE cilogon_id = '{0}'
+        SELECT id FROM fabric_people WHERE oidc_claim_sub = '{0}'
         """.format(person['uid'])
         dfq = dict_from_query(sql)
         people_id = dfq[0]['id']
+
         # if facility-operators - set is_facility_operator = True
         if "CO:COU:facility-operators:members:active" in person['isMemberOf']:
             is_facility_operator = True
@@ -242,7 +250,8 @@ def load_relationship_data(people):
         WHERE fabric_people.id = {2};
         """.format(bool(is_facility_operator), bool(is_project_lead), int(people_id))
         sql_list.append(sql)
-        # if isMemberOf attribute contains data
+
+        # if isMemberOf attribute contains cou information
         for cou in person['isMemberOf']:
             # add cou to roles table
             sql = """
@@ -253,44 +262,13 @@ def load_relationship_data(people):
             """.format(int(people_id), cou)
             sql_list.append(sql)
 
-            # if project - if is_facility_operator = True, set facility_operators (projects_id, people_id)
-            is_project_cou = False
-            if re.search("CO:COU:([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12}):members:active", cou):
-                is_project_cou = True
-            if is_project_cou and is_facility_operator:
-                sql = """
-                SELECT id from fabric_projects WHERE cou = '{0}'
-                """.format(cou)
-                dfq = dict_from_query(sql)
-                project_id = dfq[0]['id']
-                command = """
-                INSERT INTO facility_operators(projects_id, people_id)
-                VALUES ('{0}', '{1}')
-                ON CONFLICT ON CONSTRAINT facility_operators_duplicate
-                DO NOTHING
-                """.format(int(project_id), int(people_id))
-                sql_list.append(command)
-            #   if project/project-leads - set project_leads (projects_id, people_id)
-            if re.search("CO:COU:([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})-pl:members:active", cou):
-                project_cou = re.sub('-pl', '', cou)
-                sql = """
-                SELECT id from fabric_projects WHERE cou = '{0}'
-                """.format(project_cou)
-                dfq = dict_from_query(sql)
-                project_id = dfq[0]['id']
-                command = """
-                INSERT INTO project_leads(projects_id, people_id)
-                VALUES ('{0}', '{1}')
-                ON CONFLICT ON CONSTRAINT project_leads_duplicate
-                DO NOTHING
-                """.format(int(project_id), int(people_id))
-                sql_list.append(command)
             #   if project/project-owners - set project_owners (projects_id, people_id)
             if re.search("CO:COU:([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})-po:members:active", cou):
-                project_cou = re.sub('-po', '', cou)
+                # project_cou = re.sub('-po', '', cou)
+                project_uuid = re.search("([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})", cou)[0]
                 sql = """
-                SELECT id from fabric_projects WHERE cou = '{0}'
-                """.format(project_cou)
+                SELECT id FROM fabric_projects WHERE uuid = '{0}'
+                """.format(project_uuid)
                 dfq = dict_from_query(sql)
                 project_id = dfq[0]['id']
                 command = """
@@ -302,10 +280,11 @@ def load_relationship_data(people):
                 sql_list.append(command)
             #   if project/project-members - set project_members (projects_id, people_id)
             if re.search("CO:COU:([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})-pm:members:active", cou):
-                project_cou = re.sub('-pm', '', cou)
+                # project_cou = re.sub('-pm', '', cou)
+                project_uuid = re.search("([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})", cou)[0]
                 sql = """
-                SELECT id from fabric_projects WHERE cou = '{0}'
-                """.format(project_cou)
+                SELECT id FROM fabric_projects WHERE uuid = '{0}'
+                """.format(project_uuid)
                 dfq = dict_from_query(sql)
                 project_id = dfq[0]['id']
                 command = """
@@ -322,6 +301,34 @@ def load_relationship_data(people):
     run_sql_commands(commands)
 
 
+def update_project_data():
+    sql = """
+    SELECT uuid FROM fabric_people
+    WHERE id = 1;
+    """
+    dfq = dict_from_query(sql)
+    created_by = dfq[0].get('uuid')
+    t_now = datetime.now()
+    t_zone = timezone(TIMEZONE)
+    created_time = t_zone.localize(t_now)
+    sql_list = []
+    sql = """
+    UPDATE fabric_projects
+    SET created_by = '{0}'
+    WHERE created_by = 'None';
+    """.format(created_by)
+    sql_list.append(sql)
+    sql = """
+    UPDATE fabric_projects
+    SET created_time = '{0}'
+    WHERE created_time = 'None';
+    """.format(created_time.isoformat())
+    sql_list.append(sql)
+    commands = tuple(i for i in sql_list)
+    print("[INFO] attempt to update project data")
+    run_sql_commands(commands)
+
+
 def load_people_data():
     if str(LDAP_PARAMS['mock']).lower() == 'true':
         people = mock_people
@@ -334,15 +341,18 @@ def load_people_data():
     for person in people:
         people_uuid = uuid4()
         command = """
-        INSERT INTO fabric_people(uuid, cilogon_id, name, email, eppn, is_facility_operator, is_project_lead)
+        INSERT INTO fabric_people(uuid, oidc_claim_sub, name, email, eppn, is_facility_operator, is_project_lead)
         VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', FALSE, FALSE)
         ON CONFLICT ON CONSTRAINT cilogon_uid
         DO NOTHING
-        """.format(people_uuid, person['uid'], person['cn'], person['mail'], person['eduPersonPrincipalName'])
+        """.format(people_uuid, person.get('uid'), person.get('cn'),
+                   person.get('mail'), person.get('eduPersonPrincipalName'))
         sql_list.append(command)
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to load people data")
     run_sql_commands(commands)
+    if str(LDAP_PARAMS['mock']).lower() == 'true':
+        update_project_data()
     load_relationship_data(people)
 
 

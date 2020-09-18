@@ -3,8 +3,11 @@ from uuid import uuid4
 import psycopg2
 from swagger_server.models.project_long import ProjectLong  # noqa: E501
 from swagger_server.models.project_short import ProjectShort  # noqa: E501
+from .people_controller import people_uuid_get
 
 from .utils import dict_from_query, run_sql_commands
+from datetime import datetime
+from pytz import timezone
 
 def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     """add members to an existing project
@@ -21,10 +24,13 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id from fabric_projects WHERE uuid = '{0}';
+    SELECT id FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
-    project_id = dfq[0]['id']
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     if project_members:
         for person_uuid in project_members:
@@ -34,7 +40,11 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
                 SELECT id from fabric_people WHERE uuid = '{0}';
                 """.format(person_uuid)
                 dfq = dict_from_query(sql)
-                people_id = dfq[0]['id']
+                try:
+                    people_id = dfq[0].get('id')
+                except IndexError:
+                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                           {'X-Error': 'Person UUID Not Found'}
 
                 # add to project_members table
                 sql = """
@@ -81,20 +91,27 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-        SELECT id from fabric_projects WHERE uuid = '{0}';
+        SELECT id FROM fabric_projects WHERE uuid = '{0}';
         """.format(uuid)
     dfq = dict_from_query(sql)
-    project_id = dfq[0]['id']
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     if project_owners:
         for person_uuid in project_owners:
             try:
                 # get people id
                 sql = """
-                SELECT id from fabric_people WHERE uuid = '{0}';
+                SELECT id FROM fabric_people WHERE uuid = '{0}';
                 """.format(person_uuid)
                 dfq = dict_from_query(sql)
-                people_id = dfq[0]['id']
+                try:
+                    people_id = dfq[0].get('id')
+                except IndexError:
+                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                           {'X-Error': 'Person UUID Not Found'}
 
                 # add to project_owners table
                 sql = """
@@ -114,7 +131,7 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
                 """.format(project_id, people_id)
                 sql_list.append(sql)
 
-                # add cou to roles table
+                # add -po cou to roles table
                 cou = 'CO:COU:' + str(uuid) + '-po:members:active'
                 sql = """
                 INSERT INTO roles(people_id, role)
@@ -124,7 +141,7 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
                 """.format(people_id, cou)
                 sql_list.append(sql)
 
-                # add cou to roles table
+                # add -pm cou to roles table
                 cou = 'CO:COU:' + str(uuid) + '-pm:members:active'
                 sql = """
                 INSERT INTO roles(people_id, role)
@@ -160,13 +177,15 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-        SELECT id from fabric_projects WHERE uuid = '{0}';
+        SELECT id FROM fabric_projects WHERE uuid = '{0}';
         """.format(uuid)
     dfq = dict_from_query(sql)
-    project_id = dfq[0]['id']
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     if tags:
-        print(tags)
         for tag in tags:
             if len(tag) > 0:
                 sql = """
@@ -176,6 +195,9 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
                 DO NOTHING
                 """.format(project_id, tag)
                 sql_list.append(sql)
+            else:
+                return 'Bad Request, Tag not specified or is otherwise blank', 400, \
+                       {'X-Error': 'Bad Request, Tag not specified or is otherwise blank'}
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to update tags data")
@@ -184,8 +206,7 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
     return projects_uuid_get(uuid)
 
 
-def projects_create_post(name, description, facility=None, tags=None, project_owners=None,
-                         project_members=None):  # noqa: E501
+def projects_create_post(name, description, facility, tags=None, project_owners=None, project_members=None):  # noqa: E501
     """create new project
 
     Create new project # noqa: E501
@@ -205,22 +226,41 @@ def projects_create_post(name, description, facility=None, tags=None, project_ow
 
     :rtype: ProjectLong
     """
+    # get identity for created_by
+    if True:
+        print("[INFO] using mock created_by")
+        sql = """
+        SELECT uuid FROM fabric_people
+        WHERE id = 1;
+        """
+        dfq = dict_from_query(sql)
+        created_by = dfq[0].get('uuid')
+    else:
+        created_by = None
+        pass
+    # get created_time
+    t_now = datetime.now()
+    t_zone = timezone('America/New_York')
+    created_time = t_zone.localize(t_now)
     # create new project entry
     project_uuid = uuid4()
-    project_cou = 'CO:COU:' + str(project_uuid)  + ':members:active'
     sql = """
-    INSERT INTO fabric_projects(uuid, name, description, facility, cou)
-    VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');
-    """.format(str(project_uuid), name, description, facility, project_cou)
+    INSERT INTO fabric_projects(uuid, name, description, facility, created_by, created_time)
+    VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}');
+    """.format(str(project_uuid), name, description, facility, created_by, created_time)
     run_sql_commands(sql)
 
     sql_list = []
     # get project id
     sql = """
-    SELECT id from fabric_projects WHERE uuid = '{0}';
+    SELECT id FROM fabric_projects WHERE uuid = '{0}';
     """.format(project_uuid)
     dfq = dict_from_query(sql)
-    project_id = dfq[0]['id']
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        projects_delete_delete(str(project_uuid))
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     if facility:
         sql = """
@@ -230,19 +270,21 @@ def projects_create_post(name, description, facility=None, tags=None, project_ow
         """.format(facility, project_id)
         sql_list.append(sql)
 
-    # project leads
-    # TODO
-
     # project owners
     if project_owners:
         for person_uuid in project_owners:
             try:
                 # get people id
                 sql = """
-                SELECT id from fabric_people WHERE uuid = '{0}';
+                SELECT id FROM fabric_people WHERE uuid = '{0}';
                 """.format(person_uuid)
                 dfq = dict_from_query(sql)
-                people_id = dfq[0]['id']
+                try:
+                    people_id = dfq[0].get('id')
+                except IndexError:
+                    projects_delete_delete(str(project_uuid))
+                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                           {'X-Error': 'Person UUID Not Found'}
 
                 # add to project_owners table
                 sql = """
@@ -291,10 +333,15 @@ def projects_create_post(name, description, facility=None, tags=None, project_ow
             try:
                 # get people id
                 sql = """
-                SELECT id from fabric_people WHERE uuid = '{0}';
+                SELECT id FROM fabric_people WHERE uuid = '{0}';
                 """.format(person_uuid)
                 dfq = dict_from_query(sql)
-                people_id = dfq[0]['id']
+                try:
+                    people_id = dfq[0].get('id')
+                except IndexError:
+                    projects_delete_delete(str(project_uuid))
+                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                           {'X-Error': 'Person UUID Not Found'}
 
                 # add to project_members table
                 sql = """
@@ -330,6 +377,10 @@ def projects_create_post(name, description, facility=None, tags=None, project_ow
                 DO NOTHING
                 """.format(project_id, tag)
                 sql_list.append(sql)
+            else:
+                projects_delete_delete(str(project_uuid))
+                return 'Bad Request, Tag not specified or is otherwise blank', 400, \
+                       {'X-Error': 'Bad Request, Tag not specified or is otherwise blank'}
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to update project data")
@@ -351,25 +402,13 @@ def projects_delete_delete(uuid):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id from fabric_projects WHERE uuid = '{0}';
+    SELECT id FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
-    print(dfq)
-    project_id = dfq[0]['id']
-
-    # facility operators
-    sql = """
-    DELETE FROM facility_operators
-    WHERE facility_operators.projects_id = {0};
-    """.format(project_id)
-    sql_list.append(sql)
-
-    # project leads
-    sql = """
-    DELETE FROM project_leads
-    WHERE project_leads.projects_id = {0};
-    """.format(project_id)
-    sql_list.append(sql)
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # project owners
     sql = """
@@ -413,11 +452,15 @@ def projects_delete_delete(uuid):  # noqa: E501
     return {}
 
 
-def projects_get():  # noqa: E501
+def projects_get(project_name=None, x_page_no=None):  # noqa: E501
     """list of projects
 
     List of projects # noqa: E501
 
+    :param project_name: Search Project by Name (ILIKE)
+    :type project_name: str
+    :param x_page_no: Page number of results (25 per page)
+    :type x_page_no: str
 
     :rtype: ProjectShort
     """
@@ -425,7 +468,15 @@ def projects_get():  # noqa: E501
     response = []
 
     sql = """
-    SELECT name, description, facility, uuid from fabric_projects
+    SELECT name, description, facility, uuid, created_by FROM fabric_projects
+    """
+
+    if project_name:
+        sql = sql + """
+        WHERE name ILIKE '%{}%'
+        """.format(str(project_name))
+
+    sql = sql + """
     ORDER BY name;
     """
     dfq = dict_from_query(sql)
@@ -433,10 +484,11 @@ def projects_get():  # noqa: E501
     # construct response object
     for project in dfq:
         ps = ProjectShort()
-        ps.name = project['name']
-        ps.description = project['description']
-        ps.facility = project['facility']
-        ps.uuid = project['uuid']
+        ps.name = project.get('name')
+        ps.description = project.get('description')
+        ps.facility = project.get('facility')
+        ps.uuid = project.get('uuid')
+        ps.created_by = project.get('created_by')
         response.append(ps)
 
     return response
@@ -457,20 +509,27 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id from fabric_projects WHERE uuid = '{0}';
+    SELECT id FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
-    project_id = dfq[0]['id']
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     if project_members:
         for person_uuid in project_members:
             try:
                 # get people id
                 sql = """
-                SELECT id from fabric_people WHERE uuid = '{0}';
+                SELECT id FROM fabric_people WHERE uuid = '{0}';
                 """.format(person_uuid)
                 dfq = dict_from_query(sql)
-                people_id = dfq[0]['id']
+                try:
+                    people_id = dfq[0].get('id')
+                except IndexError:
+                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                           {'X-Error': 'Person UUID Not Found'}
 
                 # remove people_id from project_members table
                 sql = """
@@ -479,13 +538,38 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
                 """.format(project_id, people_id)
                 sql_list.append(sql)
 
-                # remove cou from roles table
+                # remove -pm cou from roles table
                 cou = 'CO:COU:' + uuid + '-pm:members:active'
                 sql = """
                 DELETE FROM roles
                 WHERE roles.people_id = {0} AND role = '{1}';
                 """.format(people_id, cou)
                 sql_list.append(sql)
+
+                # check if person is also in project_owners
+                sql_po_check = """
+                SELECT EXISTS (
+                    SELECT 1 FROM project_owners 
+                    WHERE project_owners.projects_id = {0} and project_owners.people_id = {1}
+                );
+                """.format(project_id, people_id)
+                dfq = dict_from_query(sql_po_check)
+                print(dfq[0])
+                if dfq[0].get('exists'):
+                    # remove people_id from project_owners table
+                    sql = """
+                    DELETE FROM project_owners
+                    WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
+                    """.format(project_id, people_id)
+                    sql_list.append(sql)
+
+                    # remove -po cou from roles table
+                    cou = 'CO:COU:' + uuid + '-po:members:active'
+                    sql = """
+                    DELETE FROM roles
+                    WHERE roles.people_id = {0} AND role = '{1}';
+                    """.format(people_id, cou)
+                    sql_list.append(sql)
 
             except (Exception, psycopg2.DatabaseError) as error:
                 print(error)
@@ -513,20 +597,27 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id from fabric_projects WHERE uuid = '{0}';
+    SELECT id FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
-    project_id = dfq[0]['id']
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     if project_owners:
         for person_uuid in project_owners:
             try:
                 # get people id
                 sql = """
-                    SELECT id from fabric_people WHERE uuid = '{0}';
+                    SELECT id FROM fabric_people WHERE uuid = '{0}';
                     """.format(person_uuid)
                 dfq = dict_from_query(sql)
-                people_id = dfq[0]['id']
+                try:
+                    people_id = dfq[0].get('id')
+                except IndexError:
+                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                           {'X-Error': 'Person UUID Not Found'}
 
                 # remove people_id from project_owners table
                 sql = """
@@ -569,10 +660,13 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id from fabric_projects WHERE uuid = '{0}';
+    SELECT id FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
-    project_id = dfq[0]['id']
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     if tags:
         print(tags)
@@ -583,6 +677,9 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
                 WHERE tags.projects_id = {0} AND tags.tag = '{1}'
                 """.format(project_id, tag)
                 sql_list.append(sql)
+            else:
+                return 'Bad Request, Tag not specified or is otherwise blank', 400, \
+                       {'X-Error': 'Bad Request, Tag not specified or is otherwise blank'}
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to remove tags data")
@@ -610,10 +707,13 @@ def projects_update_put(uuid, name=None, description=None, facility=None):  # no
     sql_list = []
     # get project id
     sql = """
-    SELECT id from fabric_projects WHERE uuid = '{0}';
+    SELECT id FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
-    project_id = dfq[0]['id']
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     if name:
         sql = """
@@ -659,80 +759,65 @@ def projects_uuid_get(uuid):  # noqa: E501
 
     # get project id
     sql = """
-    SELECT id from fabric_projects WHERE uuid = '{0}';
+    SELECT id FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
-    project_id = dfq[0]['id']
+    try:
+        project_id = dfq[0].get('id')
+    except IndexError:
+        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # get project attributes
     project_sql = """
-    SELECT * from fabric_projects
+    SELECT * FROM fabric_projects
     WHERE uuid = '{0}';
     """.format(uuid)
     project = dict_from_query(project_sql)[0]
 
-    # facility-operators
-    facility_operators = []
-    fo_sql = """
-    SELECT uuid from fabric_people
-    WHERE fabric_people.is_facility_operator = TRUE
-    ORDER BY uuid;
-    """
-    dfq = dict_from_query(fo_sql)
-    for fo in dfq:
-        facility_operators.append(fo['uuid'])
-
-    # project-leads
-    project_leads = []
-    pl_sql = """
-    SELECT uuid from fabric_people
-    INNER JOIN project_leads ON fabric_people.id = project_leads.people_id 
-    AND project_leads.projects_id = {0};
-    """.format(project_id)
-    dfq = dict_from_query(pl_sql)
-    for pl in dfq:
-        project_leads.append(pl['uuid'])
+    # project created by
+    pc = people_uuid_get(project.get('created_by'))
+    created_by = {'uuid': pc.uuid, 'name': pc.name, 'email': pc.email}
 
     # project-owners
     project_owners = []
     po_sql = """
-    SELECT uuid from fabric_people
+    SELECT uuid, name, email FROM fabric_people
     INNER JOIN project_owners ON fabric_people.id = project_owners.people_id 
     AND project_owners.projects_id = {0};
     """.format(project_id)
     dfq = dict_from_query(po_sql)
     for po in dfq:
-        project_owners.append(po['uuid'])
+        project_owners.append({'uuid': po.get('uuid'), 'name': po.get('name'), 'email': po.get('email')})
 
     # project-members
     project_members = []
     pm_sql = """
-    SELECT uuid from fabric_people
+    SELECT uuid, name, email FROM fabric_people
     INNER JOIN project_members ON fabric_people.id = project_members.people_id 
     AND project_members.projects_id = {0};
     """.format(project_id)
     dfq = dict_from_query(pm_sql)
     for pm in dfq:
-        project_members.append(pm['uuid'])
+        project_members.append({'uuid': pm.get('uuid'), 'name': pm.get('name'), 'email': pm.get('email')})
 
     # tags
     tags = []
     tags_sql = """
-    SELECT tag from tags
+    SELECT tag FROM tags
     WHERE projects_id = {0}
     ORDER BY tag;
     """.format(project_id)
     dfq = dict_from_query(tags_sql)
     for tag in dfq:
-        tags.append(tag['tag'])
+        tags.append(tag.get('tag'))
 
     # construct response object
-    response.name = project['name']
-    response.description = project['description']
-    response.facility = project['facility']
-    response.uuid = project['uuid']
-    response.facility_operators = facility_operators
-    response.project_leads = project_leads
+    response.name = project.get('name')
+    response.description = project.get('description')
+    response.facility = project.get('facility')
+    response.uuid = project.get('uuid')
+    response.created_by = created_by
+    response.created_time = project.get('created_time')
     response.project_owners = project_owners
     response.project_members = project_members
     response.tags = tags

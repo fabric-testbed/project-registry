@@ -70,7 +70,7 @@ class FabricPeople(Base):
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String)
-    cilogon_id = Column(String)
+    oidc_claim_sub = Column(String)
     name = Column(String)
     email = Column(String)
     eppn = Column(String)

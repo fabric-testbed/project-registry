@@ -8,7 +8,7 @@ info:
     email: stealey@unc.edu
   license:
     name: MIT
-    url: tbd
+    url: https://opensource.org/licenses/MIT
   version: 1.0.0
 servers:
 - url: http://127.0.0.1:5000/
@@ -45,6 +45,23 @@ paths:
       summary: list of projects
       description: List of projects
       operationId: projects_get
+      parameters:
+      - name: project_name
+        in: query
+        description: Search Project by Name (ILIKE)
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: X_PageNo
+        in: header
+        description: Page number of results (25 per page)
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
       responses:
         "200":
           description: OK
@@ -498,6 +515,23 @@ paths:
       summary: list of people
       description: List of people
       operationId: people_get
+      parameters:
+      - name: person_name
+        in: query
+        description: Search People by Name (ILIKE)
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: X_PageNo
+        in: header
+        description: Page number of results (25 per page)
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
       responses:
         "200":
           description: OK
@@ -517,12 +551,47 @@ paths:
         "5XX":
           description: Unexpected error
       x-openapi-router-controller: swagger_server.controllers.people_controller
+  /people/oidc_claim_sub:
+    get:
+      tags:
+      - people
+      summary: person details by OIDC Claim sub
+      description: Person details by OIDC Claim sub
+      operationId: people_oidc_claim_sub_get
+      parameters:
+      - name: oidc_claim_sub
+        in: query
+        description: Search People by OIDC Claim sub (exact match only)
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/People_long'
+                x-content-type: application/json
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: People not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.people_controller
   /people/{uuid}:
     get:
       tags:
       - people
-      summary: person details
-      description: Person details
+      summary: person details by UUID
+      description: Person details by UUID
       operationId: people_uuid_get
       parameters:
       - name: uuid
@@ -561,11 +630,14 @@ components:
           type: string
         facility:
           type: string
+        created_by:
+          type: string
       example:
         name: name
         description: description
         uuid: uuid
         facility: facility
+        created_by: created_by
     Project_long:
       properties:
         uuid:
@@ -580,39 +652,34 @@ components:
           type: array
           items:
             type: string
-        project_leads:
-          type: array
-          items:
-            type: string
-        facility_operators:
-          type: array
-          items:
-            type: string
+        created_time:
+          type: string
+        created_by:
+          $ref: '#/components/schemas/People_short'
         project_owners:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/People_short'
         project_members:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/People_short'
       example:
+        created_time: created_time
         project_members:
-        - project_members
-        - project_members
-        project_leads:
-        - project_leads
-        - project_leads
-        facility_operators:
-        - facility_operators
-        - facility_operators
+        - null
+        - null
         name: name
         description: description
         project_owners:
-        - project_owners
-        - project_owners
+        - null
+        - null
         uuid: uuid
         facility: facility
+        created_by:
+          name: name
+          uuid: uuid
+          email: email
         tags:
         - tags
         - tags
@@ -632,7 +699,7 @@ components:
       properties:
         uuid:
           type: string
-        cilogon_id:
+        oidc_claim_sub:
           type: string
         name:
           type: string
@@ -647,18 +714,26 @@ components:
         projects:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Project_short'
       example:
-        cilogon_id: cilogon_id
         projects:
-        - projects
-        - projects
+        - name: name
+          description: description
+          uuid: uuid
+          facility: facility
+          created_by: created_by
+        - name: name
+          description: description
+          uuid: uuid
+          facility: facility
+          created_by: created_by
         eppn: eppn
         roles:
         - roles
         - roles
         name: name
         uuid: uuid
+        oidc_claim_sub: oidc_claim_sub
         email: email
     Version:
       properties:

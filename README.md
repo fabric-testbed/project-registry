@@ -86,20 +86,20 @@ The project registry enforces role based access as defined by the FABRIC COmanag
 
 ### Terminology notes
 
-`PROJECT_ID` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `d505ea38-c409-42e7-833c-24843e8b0aed`)
+`PROJECT_ID` as `uuid` - unique project identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `d505ea38-c409-42e7-833c-24843e8b0aed`)
 
-`PEOPLE_ID` - unique people identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `ea806951-a22e-4e85-bc70-4ce74b1967b9`)
+`PEOPLE_ID` as `uuid` - unique people identifier based on [uuid-4](https://docs.python.org/3/library/uuid.html) (e.g. `ea806951-a22e-4e85-bc70-4ce74b1967b9`)
 
-`CILOGON_ID` - unique person identifier based on CILogon `sub` attribute (e.g. `http://cilogon.org/serverA/users/123456`)
+`OIDC_Claim_sub` - unique person identifier based on the CILogon `sub` attribute (e.g. `http://cilogon.org/serverA/users/123456`)
 
-`ROLES` - project related roles that can be one or more of (e.g. project id =`d505ea38-c409-42e7-833c-24843e8b0aed`):
+`ROLES` - roles can be global or project specific and determine the users ability to make API calls:
 
-- Facility Operator (e.g. `CO:COU:facility-operator:members:active`)
-- Project Lead (e.g. `CO:COU:d505ea38-c409-42e7-833c-24843e8b0aed-pl:members:active`)
-- Project Owner (e.g. `CO:COU:d505ea38-c409-42e7-833c-24843e8b0aed-po:members:active`)
-- Project Member (e.g. `CO:COU:d505ea38-c409-42e7-833c-24843e8b0aed-pm:members:active`)
+- Facility Operator (e.g. global: `CO:COU:facility-operator:members:active`)
+- Project Lead (e.g. global: `CO:COU:d505ea38-c409-42e7-833c-24843e8b0aed-pl:members:active`)
+- Project Owner (e.g. project specific: `CO:COU:d505ea38-c409-42e7-833c-24843e8b0aed-po:members:active`)
+- Project Member (e.g. project specific: `CO:COU:d505ea38-c409-42e7-833c-24843e8b0aed-pm:members:active`)
 
-`TAGS` - additional attributes applied at the project level and managed by the Facility Operator, for example:
+`Tags` - additional attributes applied at the project level and managed by the Facility Operator, for example:
 
 - `peering`
 - `cloudconnect`
@@ -108,9 +108,17 @@ The project registry enforces role based access as defined by the FABRIC COmanag
 
 `NA` - Not Applicable
 
+**Parameter Types**
+
+- OpenAPI 3.0 distinguishes between the following parameter types based on the parameter location. The location is determined by the parameter’s `in` key, for example, `in: query` or `in: path`.
+  - [path parameters](https://swagger.io/docs/specification/describing-parameters/#path-parameters), such as `/users/{id}`
+  - [query parameters](https://swagger.io/docs/specification/describing-parameters/#query-parameters), such as `/users?role=admin`
+  - [header parameters](https://swagger.io/docs/specification/describing-parameters/#header-parameters), such as `X-MyHeader: Value`
+  - [cookie parameters](https://swagger.io/docs/specification/describing-parameters/#cookie-parameters), which are passed in the `Cookie` header, such as `Cookie: debug=0; csrftoken=BUSe35dohU3O1MZvDCU`
+
 ### <a name="apiversion"></a>Version
 
-The project registry API is versioned
+The project registry API is versioned based on the release found in GitHub.
 
 API `version`:
 
@@ -133,35 +141,48 @@ People are identities as authenticated by CILogon/COmanage and subsetted into gr
 
 People Roles
 
-- **projectLead(principal, facility)**: a project lead can create new projects specific to a given facility. Project Lead may add or remove Project Owners to their project (project they created). Project Lead becomes project owner by default.
-- f**acilityOperator(principal, facility)**: a facility operator can create and delete any project and manage owners and members of any project. Facility operator can create slivers in any project subject to project resource constraints.
-- **projectOwner(principal, project)**: a project Owner may add or remove project members for the projects they own. Project Owners are also project members.
-- **projectMember(principal, project)**: a project Member may create slices assigned to their corresponding project(s). Slice creation requires a membership in a valid project. A project member can provision resources/add slivers into a valid slice subject to resource federation- or aggregate-level resource constraints. A slice may contain slivers created by different project members. A sliver can only be modified or deleted by the project member who created it or by a project owner with one exception: slivers belonging to different project members are automatically allowed to be stitched together as necessary (i.e. if adding a sliver from Alice to a slice requires modifying another sliver already created by Bob, permission is automatically granted assuming Alice and Bob are members of the same project).
+- **Project Lead (principal, facility)**: a project lead can create new projects specific to a given facility. Project Lead may add or remove Project Owners to their project (project they created). Project Lead becomes project owner by default.
+- **Facility Operator (principal, facility)**: a facility operator can create and delete any project and manage owners and members of any project. Facility operator can create slivers in any project subject to project resource constraints.
+- **Project Owner (principal, project)**: a project Owner may add or remove project members for the projects they own. Project Owners are also project members.
+- **Project Member (principal, project)**: a project Member may create slices assigned to their corresponding project(s). Slice creation requires a membership in a valid project. A project member can provision resources/add slivers into a valid slice subject to resource federation- or aggregate-level resource constraints. A slice may contain slivers created by different project members. A sliver can only be modified or deleted by the project member who created it or by a project owner with one exception: slivers belonging to different project members are automatically allowed to be stitched together as necessary (i.e. if adding a sliver from Alice to a slice requires modifying another sliver already created by Bob, permission is automatically granted assuming Alice and Bob are members of the same project).
 
 API `/people`:
 
 Resource | Action | Input | Output
 :--------|:----:|:---:|:---:
-`/people` | GET: list of all people | NA | Array of People Short format
-`/people/{uuid}` | GET: singular person details | uuid as `PEOPLE_ID` | People Long format
+`/people` | GET: list of all people | `person_name` optional query parameter, `X-PageNo` optional header parameter | Array of People Short format (25 per page)
+`/people/oidc_claim_sub` | GET: singular person details | `oidc_claim_sub` required query parameter | People Long format
+`/people/{uuid}` | GET: singular person details | `uuid` required path parameter | People Long format
 
 Example: People Long format
 
 ```json
 {
-  "cilogon_id": "CILogon sub claim as string",
-  "email": "CILogon email claim as string",
-  "eppn": "CILogon eppn claiim as string",
-  "name": "CILogon name claim as string",
-  "projects": [
-    "PROJECT_ID(uuid) as string",
-    "PROJECT_ID(uuid) as string"
-  ],
-  "roles": [
-    "COmanage COU as string",
-    "COmanage COU as string"
-  ],
-  "uuid": "PEOPLE_ID(uuid) as string"
+    "email": "CILogon email claim as string",
+    "eppn": "CILogon eppn claiim as string",
+    "name": "CILogon name claim as string",
+    "oidc_claim_sub": "CILogon sub claim as string",
+    "projects": [
+        {
+            "created_by": "PEOPLE_ID(uuid) as string",
+            "description": "Project description as string",
+            "facility": "Facility descripton as string",
+            "name": "Project name as string",
+            "uuid": "PROJECT_ID(uuid) as string"
+        },
+        {
+            "created_by": "PEOPLE_ID(uuid) as string",
+            "description": "Project description as string",
+            "facility": "Facility descripton as string",
+            "name": "Project name as string",
+            "uuid": "PROJECT_ID(uuid) as string"
+        }
+    ],
+    "roles": [
+        "COmanage COU as string",
+        "COmanage COU as string"
+    ],
+    "uuid": "PEOPLE_ID(uuid) as string"
 }
 ```
 
@@ -169,9 +190,9 @@ Example: People Short format
 
 ```json
 {
-  "email": "CILogon email claim as string",
-  "name": "CILogon name claim as string",
-  "uuid": "PEOPLE_ID(uuid) as string"
+    "email": "CILogon email claim as string",
+    "name": "CILogon name claim as string",
+    "uuid": "PEOPLE_ID(uuid) as string"
 }
 ```
 
@@ -183,45 +204,59 @@ API `/projects`:
 
 Resource | Action | Input | Output
 :--------|:----:|:---:|:---:
-`/projects` | GET: list of all projects | NA | Array of Project Short format
-`/projects/add_members` | PUT: add people to members role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
-`/projects/add_owners` | PUT: add people to owners role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
-`/projects/add_tags` | PUT: add new tag | `PROJECT_ID`, array of tags | Project Long format
-`/projects/create` | POST: create new project | name, description, facility, array of `project_members`, array of `project_owners`, array of `tags` | Project Long format
-`/projects/delete` | DELETE: delete existing project | `PROJECT_ID` | Status Code
-`/projects/remove_members` | PUT: remove existing people from members role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
-`/projects/remove_owners` | PUT: remove existing people from owners role | `PROJECT_ID`, array of `PEOPLE_ID` | Project Long format
-`/projects/remove_tags` | PUT: remove existing tag | `PROJECT_ID`, array of tags | Project Long format
-`/projects/{uuid}` | GET: singular project details | uuid as `PROJECT_ID` | Project Long format
+`/projects` | GET: list of all projects | `project_name` optional query parameter, `X-PageNo` optional header parameter | Array of Project Short format (25 per page)
+`/projects/add_members` | PUT: add people to members role | `PROJECT_ID` as required query parameter, array of `PEOPLE_ID` as optional query parameter | Project Long format
+`/projects/add_owners` | PUT: add people to owners role | `PROJECT_ID` as required query parameter, array of `PEOPLE_ID` as optional query parameter | Project Long format
+`/projects/add_tags` | PUT: add new tag | `PROJECT_ID` as required query parameter, array of `Tags` as optional query parameter | Project Long format
+`/projects/create` | POST: create new project | `name`, `description`, `facility` as required query parameters; array of `project_members`, array of `project_owners`, array of `tags` as optional query parameters | Project Long format
+`/projects/delete` | DELETE: delete existing project | `PROJECT_ID` as required query parameter | Status Code
+`/projects/remove_members` | PUT: remove existing people from members role | `PROJECT_ID` as required query parameter, array of `PEOPLE_ID` as optional query parameter | Project Long format
+`/projects/remove_owners` | PUT: remove existing people from owners role | `PROJECT_ID` as required query parameter, array of `PEOPLE_ID` as optional query parameter | Project Long format
+`/projects/remove_tags` | PUT: remove existing tag | `PROJECT_ID` as required query parameter, array of `Tags` as optional query parameter | Project Long format
+`/projects/{uuid}` | GET: singular project details | `uuid` required path parameter | Project Long format
 
 Example: Project Long format
 
 ```json
 {
-  "description": "Project description as string",
-  "facility": "Facility description as string",
-  "facility_operators": [
-    "PEOPLE_ID(uuid) as string",
-    "PEOPLE_ID(uuid) as string"
-  ],
-  "name": "Project name as string",
-  "project_leads": [
-    "PEOPLE_ID(uuid) as string",
-    "PEOPLE_ID(uuid) as string"
-  ],
-  "project_members": [
-    "PEOPLE_ID(uuid) as string",
-    "PEOPLE_ID(uuid) as string"
-  ],
-  "project_owners": [
-    "PEOPLE_ID(uuid) as string",
-    "PEOPLE_ID(uuid) as string"
-  ],
-  "tags": [
-    "Tag as string",
-    "Tag as string"
-  ],
-  "uuid": "PROJECT_ID(uuid) as string"
+    "created_by": {
+        "email": "CILogon email claim as string",
+        "name": "CILogon name claim as string",
+        "uuid": "PEOPLE_ID(uuid) as string"
+    }
+    "created_time": "Date Timestamp in ISO format (with UTC offset)"
+    "description": "Project description as string",
+    "facility": "Facility description as string",
+    "name": "Project name as string",
+    "project_members": [
+        {
+            "email": "CILogon email claim as string",
+            "name": "CILogon name claim as string",
+            "uuid": "PEOPLE_ID(uuid) as string"
+        },
+        {
+            "email": "CILogon email claim as string",
+            "name": "CILogon name claim as string",
+            "uuid": "PEOPLE_ID(uuid) as string"
+        }
+    ],
+    "project_owners": [
+        {
+            "email": "CILogon email claim as string",
+            "name": "CILogon name claim as string",
+            "uuid": "PEOPLE_ID(uuid) as string"
+        },
+        {
+            "email": "CILogon email claim as string",
+            "name": "CILogon name claim as string",
+            "uuid": "PEOPLE_ID(uuid) as string"
+        }
+    ],
+    "tags": [
+        "Tag as string",
+        "Tag as string"
+    ],
+    "uuid": "PROJECT_ID(uuid) as string"
 }
 ```
 
@@ -229,10 +264,11 @@ Example: Project Short format
 
 ```json
 {
-  "description": "Project description as string",
-  "facility": "Facility descripton as string",
-  "name": "Project name as string",
-  "uuid": "PROJECT_ID(uuid) as string"
+    "created_by": "PEOPLE_ID(uuid) as string",
+    "description": "Project description as string",
+    "facility": "Facility descripton as string",
+    "name": "Project name as string",
+    "uuid": "PROJECT_ID(uuid) as string"
 }
 ```
 
