@@ -6,6 +6,7 @@ from datetime import date, datetime  # noqa: F401
 from typing import List, Dict  # noqa: F401
 
 from swagger_server.models.base_model_ import Model
+from swagger_server.models.people_short import PeopleShort  # noqa: F401,E501
 from swagger_server import util
 
 
@@ -14,7 +15,7 @@ class ProjectShort(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, uuid: str=None, name: str=None, description: str=None, facility: str=None, created_by: str=None):  # noqa: E501
+    def __init__(self, uuid: str=None, name: str=None, description: str=None, facility: str=None, created_time: str=None, created_by: PeopleShort=None):  # noqa: E501
         """ProjectShort - a model defined in Swagger
 
         :param uuid: The uuid of this ProjectShort.  # noqa: E501
@@ -25,15 +26,18 @@ class ProjectShort(Model):
         :type description: str
         :param facility: The facility of this ProjectShort.  # noqa: E501
         :type facility: str
+        :param created_time: The created_time of this ProjectShort.  # noqa: E501
+        :type created_time: str
         :param created_by: The created_by of this ProjectShort.  # noqa: E501
-        :type created_by: str
+        :type created_by: PeopleShort
         """
         self.swagger_types = {
             'uuid': str,
             'name': str,
             'description': str,
             'facility': str,
-            'created_by': str
+            'created_time': str,
+            'created_by': PeopleShort
         }
 
         self.attribute_map = {
@@ -41,12 +45,14 @@ class ProjectShort(Model):
             'name': 'name',
             'description': 'description',
             'facility': 'facility',
+            'created_time': 'created_time',
             'created_by': 'created_by'
         }
         self._uuid = uuid
         self._name = name
         self._description = description
         self._facility = facility
+        self._created_time = created_time
         self._created_by = created_by
 
     @classmethod
@@ -145,22 +151,43 @@ class ProjectShort(Model):
         self._facility = facility
 
     @property
-    def created_by(self) -> str:
+    def created_time(self) -> str:
+        """Gets the created_time of this ProjectShort.
+
+
+        :return: The created_time of this ProjectShort.
+        :rtype: str
+        """
+        return self._created_time
+
+    @created_time.setter
+    def created_time(self, created_time: str):
+        """Sets the created_time of this ProjectShort.
+
+
+        :param created_time: The created_time of this ProjectShort.
+        :type created_time: str
+        """
+
+        self._created_time = created_time
+
+    @property
+    def created_by(self) -> PeopleShort:
         """Gets the created_by of this ProjectShort.
 
 
         :return: The created_by of this ProjectShort.
-        :rtype: str
+        :rtype: PeopleShort
         """
         return self._created_by
 
     @created_by.setter
-    def created_by(self, created_by: str):
+    def created_by(self, created_by: PeopleShort):
         """Sets the created_by of this ProjectShort.
 
 
         :param created_by: The created_by of this ProjectShort.
-        :type created_by: str
+        :type created_by: PeopleShort
         """
 
         self._created_by = created_by

@@ -3,6 +3,7 @@ from uuid import uuid4
 import psycopg2
 from swagger_server.models.project_long import ProjectLong  # noqa: E501
 from swagger_server.models.project_short import ProjectShort  # noqa: E501
+from swagger_server.models.people_short import PeopleShort
 from .people_controller import people_uuid_get
 
 from .utils import dict_from_query, run_sql_commands
@@ -452,15 +453,13 @@ def projects_delete_delete(uuid):  # noqa: E501
     return {}
 
 
-def projects_get(project_name=None, x_page_no=None):  # noqa: E501
+def projects_get(project_name=None):  # noqa: E501
     """list of projects
 
     List of projects # noqa: E501
 
     :param project_name: Search Project by Name (ILIKE)
     :type project_name: str
-    :param x_page_no: Page number of results (25 per page)
-    :type x_page_no: str
 
     :rtype: ProjectShort
     """
@@ -468,7 +467,7 @@ def projects_get(project_name=None, x_page_no=None):  # noqa: E501
     response = []
 
     sql = """
-    SELECT name, description, facility, uuid, created_by FROM fabric_projects
+    SELECT name, description, facility, uuid, created_by, created_time FROM fabric_projects
     """
 
     if project_name:
@@ -483,12 +482,19 @@ def projects_get(project_name=None, x_page_no=None):  # noqa: E501
 
     # construct response object
     for project in dfq:
+        # project object
         ps = ProjectShort()
+
+        # project created by
+        pc = people_uuid_get(project.get('created_by'))
+        created_by = {'uuid': pc.uuid, 'name': pc.name, 'email': pc.email}
+
         ps.name = project.get('name')
         ps.description = project.get('description')
         ps.facility = project.get('facility')
         ps.uuid = project.get('uuid')
-        ps.created_by = project.get('created_by')
+        ps.created_by = created_by
+        ps.created_time = project.get('created_time')
         response.append(ps)
 
     return response

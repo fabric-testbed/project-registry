@@ -19,11 +19,9 @@ class TestPeopleController(BaseTestCase):
         list of people
         """
         query_string = [('person_name', 'person_name_example')]
-        headers = [('x_page_no', 'x_page_no_example')]
         response = self.client.open(
             '//people',
             method='GET',
-            headers=headers,
             query_string=query_string)
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))

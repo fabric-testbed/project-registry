@@ -24,9 +24,10 @@ if [[ "$1" = 'run_server' ]]; then
     _set_docker_uwsgi_ini
 
     # setup virtual environment
+    export PYTHONPATH=$(pwd)
     pip install virtualenv
-    virtualenv venv
-    source venv/bin/activate
+    virtualenv .venv
+    source .venv/bin/activate
     pip install -r requirements.txt
 
     # update swagger.yaml file
@@ -35,7 +36,7 @@ if [[ "$1" = 'run_server' ]]; then
     fi
 
     # run the server
-    uwsgi --virtualenv ./venv --ini docker_uwsgi.ini
+    uwsgi --virtualenv ./.venv --ini docker_uwsgi.ini
 else
     exec "$@"
 fi

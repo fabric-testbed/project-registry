@@ -7,6 +7,7 @@ from typing import List, Dict  # noqa: F401
 
 from swagger_server.models.base_model_ import Model
 from swagger_server.models.people_short import PeopleShort  # noqa: F401,E501
+from swagger_server.models.permission import Permission  # noqa: F401,E501
 from swagger_server import util
 
 
@@ -15,7 +16,7 @@ class ProjectLong(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, uuid: str=None, name: str=None, description: str=None, facility: str=None, tags: List[str]=None, created_time: str=None, created_by: PeopleShort=None, project_owners: List[PeopleShort]=None, project_members: List[PeopleShort]=None):  # noqa: E501
+    def __init__(self, uuid: str=None, name: str=None, description: str=None, facility: str=None, tags: List[str]=None, permissions: Permission=None, created_time: str=None, created_by: PeopleShort=None, project_owners: List[PeopleShort]=None, project_members: List[PeopleShort]=None):  # noqa: E501
         """ProjectLong - a model defined in Swagger
 
         :param uuid: The uuid of this ProjectLong.  # noqa: E501
@@ -28,6 +29,8 @@ class ProjectLong(Model):
         :type facility: str
         :param tags: The tags of this ProjectLong.  # noqa: E501
         :type tags: List[str]
+        :param permissions: The permissions of this ProjectLong.  # noqa: E501
+        :type permissions: Permission
         :param created_time: The created_time of this ProjectLong.  # noqa: E501
         :type created_time: str
         :param created_by: The created_by of this ProjectLong.  # noqa: E501
@@ -43,6 +46,7 @@ class ProjectLong(Model):
             'description': str,
             'facility': str,
             'tags': List[str],
+            'permissions': Permission,
             'created_time': str,
             'created_by': PeopleShort,
             'project_owners': List[PeopleShort],
@@ -55,6 +59,7 @@ class ProjectLong(Model):
             'description': 'description',
             'facility': 'facility',
             'tags': 'tags',
+            'permissions': 'permissions',
             'created_time': 'created_time',
             'created_by': 'created_by',
             'project_owners': 'project_owners',
@@ -65,6 +70,7 @@ class ProjectLong(Model):
         self._description = description
         self._facility = facility
         self._tags = tags
+        self._permissions = permissions
         self._created_time = created_time
         self._created_by = created_by
         self._project_owners = project_owners
@@ -185,6 +191,27 @@ class ProjectLong(Model):
         """
 
         self._tags = tags
+
+    @property
+    def permissions(self) -> Permission:
+        """Gets the permissions of this ProjectLong.
+
+
+        :return: The permissions of this ProjectLong.
+        :rtype: Permission
+        """
+        return self._permissions
+
+    @permissions.setter
+    def permissions(self, permissions: Permission):
+        """Sets the permissions of this ProjectLong.
+
+
+        :param permissions: The permissions of this ProjectLong.
+        :type permissions: Permission
+        """
+
+        self._permissions = permissions
 
     @property
     def created_time(self) -> str:
