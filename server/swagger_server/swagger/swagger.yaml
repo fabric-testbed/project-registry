@@ -54,14 +54,6 @@ paths:
         explode: true
         schema:
           type: string
-      - name: X_PageNo
-        in: header
-        description: Page number of results (25 per page)
-        required: false
-        style: simple
-        explode: false
-        schema:
-          type: string
       responses:
         "200":
           description: OK
@@ -148,6 +140,13 @@ paths:
           type: array
           items:
             type: string
+      - name: permissions
+        in: query
+        required: false
+        style: form
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Permission'
       - name: project_owners
         in: query
         description: Array of project owners as UUID
@@ -220,6 +219,13 @@ paths:
         explode: true
         schema:
           type: string
+      - name: permissions
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Permission'
       responses:
         "200":
           description: OK
@@ -524,14 +530,6 @@ paths:
         explode: true
         schema:
           type: string
-      - name: X_PageNo
-        in: header
-        description: Page number of results (25 per page)
-        required: false
-        style: simple
-        explode: false
-        schema:
-          type: string
       responses:
         "200":
           description: OK
@@ -630,14 +628,20 @@ components:
           type: string
         facility:
           type: string
-        created_by:
+        created_time:
           type: string
+        created_by:
+          $ref: '#/components/schemas/People_short'
       example:
+        created_time: created_time
         name: name
         description: description
         uuid: uuid
         facility: facility
-        created_by: created_by
+        created_by:
+          name: name
+          uuid: uuid
+          email: email
     Project_long:
       properties:
         uuid:
@@ -652,6 +656,8 @@ components:
           type: array
           items:
             type: string
+        permissions:
+          $ref: '#/components/schemas/Permission'
         created_time:
           type: string
         created_by:
@@ -669,6 +675,7 @@ components:
         project_members:
         - null
         - null
+        permissions: {}
         name: name
         description: description
         project_owners:
@@ -717,16 +724,24 @@ components:
             $ref: '#/components/schemas/Project_short'
       example:
         projects:
-        - name: name
+        - created_time: created_time
+          name: name
           description: description
           uuid: uuid
           facility: facility
-          created_by: created_by
-        - name: name
+          created_by:
+            name: name
+            uuid: uuid
+            email: email
+        - created_time: created_time
+          name: name
           description: description
           uuid: uuid
           facility: facility
-          created_by: created_by
+          created_by:
+            name: name
+            uuid: uuid
+            email: email
         eppn: eppn
         roles:
         - roles
@@ -744,4 +759,6 @@ components:
       example:
         gitsha1: gitsha1
         version: version
+    Permission:
+      type: object
 

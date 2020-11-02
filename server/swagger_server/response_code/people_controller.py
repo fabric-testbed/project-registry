@@ -4,15 +4,13 @@ from swagger_server.models.people_short import PeopleShort  # noqa: E501
 from .utils import dict_from_query
 
 
-def people_get(person_name=None, x_page_no=None):  # noqa: E501
+def people_get(person_name=None):  # noqa: E501
     """list of people
 
     List of people # noqa: E501
 
     :param person_name: Search People by Name (ILIKE)
     :type person_name: str
-    :param x_page_no: Page number of results (25 per page)
-    :type x_page_no: str
 
     :rtype: List[PeopleShort]
     """

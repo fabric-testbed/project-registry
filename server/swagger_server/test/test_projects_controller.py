@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from flask import json
 from six import BytesIO
 
+from swagger_server.models.permission import Permission  # noqa: E501
 from swagger_server.models.project_long import ProjectLong  # noqa: E501
 from swagger_server.models.project_short import ProjectShort  # noqa: E501
 from swagger_server.test import BaseTestCase
@@ -64,6 +65,7 @@ class TestProjectsController(BaseTestCase):
                         ('description', 'description_example'),
                         ('facility', 'facility_example'),
                         ('tags', 'tags_example'),
+                        ('permissions', Permission()),
                         ('project_owners', 'project_owners_example'),
                         ('project_members', 'project_members_example')]
         response = self.client.open(
@@ -92,11 +94,9 @@ class TestProjectsController(BaseTestCase):
         list of projects
         """
         query_string = [('project_name', 'project_name_example')]
-        headers = [('x_page_no', 'x_page_no_example')]
         response = self.client.open(
             '//projects',
             method='GET',
-            headers=headers,
             query_string=query_string)
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
@@ -151,7 +151,8 @@ class TestProjectsController(BaseTestCase):
         query_string = [('uuid', 'uuid_example'),
                         ('name', 'name_example'),
                         ('description', 'description_example'),
-                        ('facility', 'facility_example')]
+                        ('facility', 'facility_example'),
+                        ('permissions', Permission())]
         response = self.client.open(
             '//projects/update',
             method='PUT',
