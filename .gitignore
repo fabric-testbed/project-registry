@@ -175,3 +175,5 @@ Temporary Items
 # server stub per swagger codegen
 server-stub
 
+# vouch configuration
+vouch/config

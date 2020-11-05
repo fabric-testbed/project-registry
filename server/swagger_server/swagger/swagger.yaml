@@ -140,13 +140,6 @@ paths:
           type: array
           items:
             type: string
-      - name: permissions
-        in: query
-        required: false
-        style: form
-        explode: false
-        schema:
-          $ref: '#/components/schemas/Permission'
       - name: project_owners
         in: query
         description: Array of project owners as UUID
@@ -219,13 +212,6 @@ paths:
         explode: true
         schema:
           type: string
-      - name: permissions
-        in: query
-        required: false
-        style: form
-        explode: true
-        schema:
-          $ref: '#/components/schemas/Permission'
       responses:
         "200":
           description: OK
@@ -656,8 +642,6 @@ components:
           type: array
           items:
             type: string
-        permissions:
-          $ref: '#/components/schemas/Permission'
         created_time:
           type: string
         created_by:
@@ -675,7 +659,6 @@ components:
         project_members:
         - null
         - null
-        permissions: {}
         name: name
         description: description
         project_owners:
@@ -759,6 +742,4 @@ components:
       example:
         gitsha1: gitsha1
         version: version
-    Permission:
-      type: object
 

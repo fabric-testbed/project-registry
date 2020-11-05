@@ -693,7 +693,6 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
 
     return projects_uuid_get(uuid)
 
-
 def projects_update_put(uuid, name=None, description=None, facility=None):  # noqa: E501
     """update an existing project
 
@@ -701,11 +700,11 @@ def projects_update_put(uuid, name=None, description=None, facility=None):  # no
 
     :param uuid:
     :type uuid: str
-    :param name: 
+    :param name:
     :type name: str
-    :param description: 
+    :param description:
     :type description: str
-    :param facility: 
+    :param facility:
     :type facility: str
 
     :rtype: ProjectLong
