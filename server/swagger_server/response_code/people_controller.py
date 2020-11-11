@@ -1,7 +1,10 @@
+from flask import request
 from swagger_server.models.people_long import PeopleLong  # noqa: E501
 from swagger_server.models.people_short import PeopleShort  # noqa: E501
 
 from .utils import dict_from_query
+from ..authorization.people import authorize_people_get, authorize_people_oidc_claim_sub_get, \
+    authorize_people_uuid_get
 
 
 def people_get(person_name=None):  # noqa: E501
@@ -14,6 +17,11 @@ def people_get(person_name=None):  # noqa: E501
 
     :rtype: List[PeopleShort]
     """
+    # check authorization
+    if not authorize_people_get(request.headers):
+        return 'Authorization information is missing or invalid: /people', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
+
     # response as array of PeopleShort()
     response = []
 
@@ -61,6 +69,12 @@ def people_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
         uuid = dfq[0].get('uuid')
     except IndexError:
         return 'OIDC Claim sub Not Found: {0}'.format(str(oidc_claim_sub)), 404, {'X-Error': 'OIDC Claim sub Not Found'}
+
+    # check authorization
+    if not authorize_people_oidc_claim_sub_get(request.headers, oidc_claim_sub):
+        return 'Authorization information is missing or invalid: /people/oidc_claim_sub', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
+
     return people_uuid_get(uuid)
 
 
@@ -86,6 +100,11 @@ def people_uuid_get(uuid):  # noqa: E501
         people_id = dfq[0].get('id')
     except IndexError:
         return 'Person UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Person UUID Not Found'}
+
+    # check authorization
+    if not authorize_people_uuid_get(request.headers, uuid):
+        return 'Authorization information is missing or invalid: /people/{uuid}', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     # get person attributes
     sql_person = """

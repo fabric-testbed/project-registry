@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 import re
-import sys
+from configparser import ConfigParser
+from datetime import datetime
 from pprint import pprint
 from uuid import uuid4
-from pytz import timezone
-from datetime import datetime
 
 import psycopg2
+from pytz import timezone
 
-sys.path.append("..")
+config = ConfigParser()
+config.read('../server/swagger_server/config/config.ini')
 
-from database import Session, LDAP_PARAMS, TIMEZONE
+# from database import Session, LDAP_PARAMS, TIMEZONE
 from ldap3 import Connection, Server, ALL
+from drop_create_tables import Session
 
 # Variables
+TIMEZONE = 'America/New_York'
 
 # default values
 DEFAULT_NAME = 'INSERT_PROJECT_NAME'
@@ -32,63 +35,70 @@ ATTRIBUTES = [
 ]
 
 # mocks for testing
-mock_cou = [
-    'CO:COU:project-leads:members:active',
-    'CO:COU:facility-operators:members:active',
-    'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
-    'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-po:members:active'
-]
-
-mock_people = [
-    {
-        'cn': 'System Administrator',
-        'eduPersonPrincipalName': 'sysadmin@project-registry.org',
-        'isMemberOf': [
-            'CO:COU:facility-operators:members:active'
-        ],
-        'mail': 'sysadmin@project-registry.org',
-        'uid': 'http://cilogon.org/serverA/users/000001'
-    },
-    {
-        'cn': 'John Q. Public',
-        'isMemberOf': [
-            'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
-            'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-po:members:active',
-            'CO:COU:project-leads:members:active'
-        ],
-        'mail': 'public@project-registry.org',
-        'uid': 'http://cilogon.org/serverA/users/000002'
-    },
-    {
-        'cn': 'Eliza Fuller',
-        'eduPersonPrincipalName': 'efuller@project-registry.org',
-        'isMemberOf': [],
-        'mail': 'efuller@not-project-registry.org',
-        'uid': 'http://cilogon.org/serverT/users/12345678'
-    },
-    {
-        'cn': 'Kendra Theory',
-        'eduPersonPrincipalName': 'ktheory@project-registry.org',
-        'isMemberOf': [
-            'CO:COU:project-leads:members:active'
-        ],
-        'mail': 'ktheory@email.project-registry.org',
-        'uid': 'http://cilogon.org/serverA/users/87654321'
-    },
-    {
-        'cn': 'Yolanda Guerra',
-        'eduPersonPrincipalName': 'yolanda@@project-registry.org',
-        'isMemberOf': [
-            'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
-            'CO:COU:project-leads:members:active'
-        ],
-        'mail': 'yolandaguerra@not-project-registry.org',
-        'uid': 'http://cilogon.org/serverT/users/24681357'
+default_user = {
+        'cn': config['default-user']['name'],
+        'eduPersonPrincipalName': config['default-user']['eppn'],
+        'isMemberOf': str(config['default-user']['roles']).split(' '),
+        'mail': config['default-user']['email'],
+        'uid': config['default-user']['oidc_claim_sub']
     }
-]
+
+if str(config['mock']['data']).lower() == 'true':
+    mock_cou = [
+        'CO:COU:fabric-active-users:members:active',
+        'CO:COU:project-leads:members:active',
+        'CO:COU:facility-operators:members:active',
+        'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
+        'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-po:members:active'
+    ]
+else:
+    mock_cou = []
+
+if str(config['mock']['data']).lower() == 'true':
+    mock_people = [
+        default_user,
+        {
+            'cn': 'John Q. Public',
+            'isMemberOf': [
+                'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
+                'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-po:members:active',
+                'CO:COU:project-leads:members:active'
+            ],
+            'mail': 'public@project-registry.org',
+            'uid': 'http://cilogon.org/serverA/users/000002'
+        },
+        {
+            'cn': 'Eliza Fuller',
+            'eduPersonPrincipalName': 'efuller@project-registry.org',
+            'isMemberOf': [],
+            'mail': 'efuller@not-project-registry.org',
+            'uid': 'http://cilogon.org/serverT/users/12345678'
+        },
+        {
+            'cn': 'Kendra Theory',
+            'eduPersonPrincipalName': 'ktheory@project-registry.org',
+            'isMemberOf': [
+                'CO:COU:project-leads:members:active'
+            ],
+            'mail': 'ktheory@email.project-registry.org',
+            'uid': 'http://cilogon.org/serverA/users/87654321'
+        },
+        {
+            'cn': 'Yolanda Guerra',
+            'eduPersonPrincipalName': 'yolanda@@project-registry.org',
+            'isMemberOf': [
+                'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
+                'CO:COU:project-leads:members:active'
+            ],
+            'mail': 'yolandaguerra@not-project-registry.org',
+            'uid': 'http://cilogon.org/serverT/users/24681357'
+        }
+    ]
+else:
+    mock_people = [default_user]
 
 # COmanage LDAP server connection
-server = Server(LDAP_PARAMS['host'], use_ssl=True, get_info=ALL)
+server = Server(config['ldap']['host'], use_ssl=True, get_info=ALL)
 
 
 def dict_from_query(query=None):
@@ -110,13 +120,13 @@ def dict_from_query(query=None):
 def get_people_list():
     print("[INFO] get COmanage people list")
     ldap_search_filter = '(objectclass=person)'
-    conn = Connection(server, LDAP_PARAMS['user'], LDAP_PARAMS['password'], auto_bind=True)
+    conn = Connection(server, config['ldap']['user'], config['ldap']['password'], auto_bind=True)
     objects_found = conn.search(
-        LDAP_PARAMS['search_base'],
+        config['ldap']['search_base'],
         ldap_search_filter,
         attributes=ATTRIBUTES
     )
-    people = []
+    people = [default_user]
     if objects_found:
         print("[INFO] people objects found")
         for entry in conn.entries:
@@ -143,9 +153,9 @@ def get_people_list():
 def get_cou_list():
     print("[INFO] get COmanage cou list")
     ldap_search_filter = '(objectclass=groupOfNames)'
-    conn = Connection(server, LDAP_PARAMS['user'], LDAP_PARAMS['password'], auto_bind=True)
+    conn = Connection(server, config['ldap']['user'], config['ldap']['password'], auto_bind=True)
     objects_found = conn.search(
-        LDAP_PARAMS['search_base'],
+        config['ldap']['search_base'],
         ldap_search_filter,
         attributes='cn'
     )
@@ -195,7 +205,7 @@ def load_version_data():
 
 
 def load_project_data():
-    if str(LDAP_PARAMS['mock']).lower() == 'true':
+    if str(config['mock']['data']).lower() == 'true':
         cous = mock_cou
         print("[INFO] *** MOCK COU DATA ***")
         pprint(cous)
@@ -330,7 +340,7 @@ def update_project_data():
 
 
 def load_people_data():
-    if str(LDAP_PARAMS['mock']).lower() == 'true':
+    if str(config['mock']['data']).lower() == 'true':
         people = mock_people
         print("[INFO] *** MOCK PEOPLE DATA ***")
         pprint(people)
@@ -351,13 +361,13 @@ def load_people_data():
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to load people data")
     run_sql_commands(commands)
-    if str(LDAP_PARAMS['mock']).lower() == 'true':
+    if str(config['mock']['data']).lower() == 'true':
         update_project_data()
     load_relationship_data(people)
 
 
 if __name__ == '__main__':
-    if str(LDAP_PARAMS['mock']).lower() == 'true':
+    if str(config['mock']['data']).lower() == 'true':
         print("[INFO] *** USING MOCK DATA ***")
     load_version_data()
     load_project_data()

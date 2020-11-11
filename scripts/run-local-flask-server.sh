@@ -6,8 +6,12 @@ SCRIPTS_DIR=$(pwd)
 # start local database
 ./run-local-database.sh
 
+# start local vouch-proxy
+./run-local-vouch-proxy.sh
+
 # launch the server
 cd ../server
+export PYTHONPATH=$(pwd)
 
 # variables
 VENV_DIR=venv
@@ -24,7 +28,13 @@ source venv/bin/activate
 echo "[INFO] install requirements.txt"
 pip install -r requirements.txt
 
+# create database tables and load
+cd ../dbmgmt
+python drop_create_tables.py
+python load_initial_data.py
+
 # run development server
+cd ../server
 FLASK_ENV=development python -m swagger_server
 
 # return to scripts directory and exit

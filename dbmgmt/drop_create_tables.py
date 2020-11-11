@@ -3,10 +3,24 @@ import sys
 
 import psycopg2
 
-sys.path.append("..")
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+# from . import encoder
 
-from database import Session
+from configparser import ConfigParser
 
+# from .config.config import config
+
+config = ConfigParser()
+config.read('../server/swagger_server/config/config.ini')
+print(config.sections())
+
+POSTGRES_ENGINE = 'postgres://' + config['postgres']['user'] + ':' + config['postgres']['password'] \
+                  + '@' + config['postgres']['host'] + ':' + config['postgres']['port'] \
+                  + '/' + config['postgres']['database']
+
+engine = create_engine(POSTGRES_ENGINE)
+Session = sessionmaker(bind=engine)
 
 def create_tables():
     """ create tables in the PostgreSQL database"""

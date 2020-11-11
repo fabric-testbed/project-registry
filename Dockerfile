@@ -4,11 +4,12 @@ MAINTAINER Michael J. Stealey <michael.j.stealey@gmail.com>
 # Set default environment variables
 
 # copy source files
-COPY ./server /code
-COPY ./docker-entrypoint.sh /code
-WORKDIR /code
+COPY ./server /server
+COPY ./dbmgmt /dbmgmt
+COPY ./docker-entrypoint.sh /server/docker-entrypoint.sh
+WORKDIR /server
 
 # set entrypoint and exposed ports
-ENTRYPOINT ["/code/docker-entrypoint.sh"]
+ENTRYPOINT ["/server/docker-entrypoint.sh"]
 EXPOSE 5000
 CMD ["run_server"]

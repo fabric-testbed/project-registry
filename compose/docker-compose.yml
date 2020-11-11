@@ -10,6 +10,8 @@ services:
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
       - ./ssl:/etc/ssl
+#    networks:
+#      - frontend
     restart: on-failure
 
   api-server:
@@ -29,6 +31,9 @@ services:
       - SWAGGER_HOST=${SWAGGER_HOST:-127.0.0.1:5000}
     ports:
       - 5000:5000
+#    networks:
+#      - frontend
+#      - backend
     restart: on-failure
 
   database:
@@ -36,6 +41,8 @@ services:
     container_name: pr-database
     ports:
       - 5432:5432
+#    networks:
+#      - backend
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-registry}
@@ -48,6 +55,14 @@ services:
     image: voucher/vouch-proxy
     ports:
       - 9090:9090
+#    networks:
+#      - frontend
     volumes:
       - ./vouch:/config
+#      - ./data:/data
     restart: unless-stopped
+
+#networks:
+#  frontend:
+#  backend:
+#    internal: true

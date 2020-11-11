@@ -177,3 +177,6 @@ server-stub
 
 # vouch configuration
 vouch/config
+
+# general configuration
+server/swagger_server/config/config.ini

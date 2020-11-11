@@ -1,4 +1,5 @@
 from uuid import uuid4
+from flask import request
 
 import psycopg2
 from swagger_server.models.project_long import ProjectLong  # noqa: E501
@@ -9,6 +10,14 @@ from .people_controller import people_uuid_get
 from .utils import dict_from_query, run_sql_commands
 from datetime import datetime
 from pytz import timezone
+
+from ..authorization.people import get_api_person
+from ..authorization.projects import filter_projects_get, authorize_projects_add_members_put, \
+    authorize_projects_add_owners_put, authorize_projects_add_tags_put, authorize_projects_create_post, \
+    authorize_projects_delete_delete, authorize_projects_get, authorize_projects_remove_members_put, \
+    authorize_projects_remove_owners_put, authorize_projects_remove_tags_put, authorize_projects_update_put, \
+    authorize_projects_uuid_get
+
 
 def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     """add members to an existing project
@@ -25,13 +34,19 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id FROM fabric_projects WHERE uuid = '{0}';
+    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
+        created_by = dfq[0].get('created_by')
     except IndexError:
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+
+    # check authorization
+    if not authorize_projects_add_members_put(request.headers, uuid, created_by):
+        return 'Authorization information is missing or invalid: /projects/add_members', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_members:
         for person_uuid in project_members:
@@ -92,13 +107,19 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-        SELECT id FROM fabric_projects WHERE uuid = '{0}';
+        SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
         """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
+        created_by = dfq[0].get('created_by')
     except IndexError:
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+
+    # check authorization
+    if not authorize_projects_add_owners_put(request.headers, created_by):
+        return 'Authorization information is missing or invalid: /projects/add_owners', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_owners:
         for person_uuid in project_owners:
@@ -178,13 +199,19 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-        SELECT id FROM fabric_projects WHERE uuid = '{0}';
+        SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
         """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
+        created_by = dfq[0].get('created_by')
     except IndexError:
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+
+    # check authorization
+    if not authorize_projects_add_tags_put(request.headers, uuid, created_by):
+        return 'Authorization information is missing or invalid: /projects/add_tags', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     if tags:
         for tag in tags:
@@ -227,18 +254,15 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
 
     :rtype: ProjectLong
     """
+    # check authorization
+    if not authorize_projects_create_post(request.headers):
+        return 'Authorization information is missing or invalid: /projects/create', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
+
     # get identity for created_by
-    if True:
-        print("[INFO] using mock created_by")
-        sql = """
-        SELECT uuid FROM fabric_people
-        WHERE id = 1;
-        """
-        dfq = dict_from_query(sql)
-        created_by = dfq[0].get('uuid')
-    else:
-        created_by = None
-        pass
+    api_person = get_api_person(request.headers.get('X-Vouch-Idp-Idtoken'))
+    created_by = api_person.uuid
+
     # get created_time
     t_now = datetime.now()
     t_zone = timezone('America/New_York')
@@ -272,6 +296,10 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
         sql_list.append(sql)
 
     # project owners
+    if project_owners:
+        project_owners.append(api_person.uuid)
+    else:
+        project_owners = [api_person.uuid]
     if project_owners:
         for person_uuid in project_owners:
             try:
@@ -403,13 +431,19 @@ def projects_delete_delete(uuid):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id FROM fabric_projects WHERE uuid = '{0}';
+    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
+        created_by = dfq[0].get('created_by')
     except IndexError:
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+
+    # check authorization
+    if not authorize_projects_delete_delete(request.headers, created_by):
+        return 'Authorization information is missing or invalid: /projects/delete', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     # project owners
     sql = """
@@ -463,6 +497,11 @@ def projects_get(project_name=None):  # noqa: E501
 
     :rtype: ProjectShort
     """
+    # check authorization
+    if not authorize_projects_get(request.headers):
+        return 'Authorization information is missing or invalid: /projects', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
+
     # response as array of ProjectShort()
     response = []
 
@@ -497,7 +536,7 @@ def projects_get(project_name=None):  # noqa: E501
         ps.created_time = project.get('created_time')
         response.append(ps)
 
-    return response
+    return filter_projects_get(request.headers, response)
 
 
 def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
@@ -515,13 +554,19 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id FROM fabric_projects WHERE uuid = '{0}';
+    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
+        created_by = dfq[0].get('created_by')
     except IndexError:
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+
+    # check authorization
+    if not authorize_projects_remove_members_put(request.headers, uuid, created_by):
+        return 'Authorization information is missing or invalid: /projects/remove_members', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_members:
         for person_uuid in project_members:
@@ -603,13 +648,19 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id FROM fabric_projects WHERE uuid = '{0}';
+    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
+        created_by = dfq[0].get('created_by')
     except IndexError:
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+
+    # check authorization
+    if not authorize_projects_remove_owners_put(request.headers, created_by):
+        return 'Authorization information is missing or invalid: /projects/remove_owners', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_owners:
         for person_uuid in project_owners:
@@ -666,13 +717,19 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-    SELECT id FROM fabric_projects WHERE uuid = '{0}';
+    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
+        created_by = dfq[0].get('created_by')
     except IndexError:
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+
+    # check authorization
+    if not authorize_projects_remove_tags_put(request.headers, uuid, created_by):
+        return 'Authorization information is missing or invalid: /projects/remove_tags', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     if tags:
         print(tags)
@@ -712,13 +769,19 @@ def projects_update_put(uuid, name=None, description=None, facility=None):  # no
     sql_list = []
     # get project id
     sql = """
-    SELECT id FROM fabric_projects WHERE uuid = '{0}';
+    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
+        created_by = dfq[0].get('created_by')
     except IndexError:
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+
+    # check authorization
+    if not authorize_projects_update_put(request.headers, created_by):
+        return 'Authorization information is missing or invalid: /projects/update', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     if name:
         sql = """
@@ -764,13 +827,19 @@ def projects_uuid_get(uuid):  # noqa: E501
 
     # get project id
     sql = """
-    SELECT id FROM fabric_projects WHERE uuid = '{0}';
+    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
     """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
+        created_by = dfq[0].get('created_by')
     except IndexError:
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+
+    # check authorization
+    if not authorize_projects_uuid_get(request.headers, uuid, created_by):
+        return 'Authorization information is missing or invalid: /projects/{uuid}', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
 
     # get project attributes
     project_sql = """

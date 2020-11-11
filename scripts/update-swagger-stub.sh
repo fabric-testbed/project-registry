@@ -6,20 +6,21 @@ cd ../
 
 # variables
 STUB_DIR=server-stub
+
 FILES_TO_COPY=(
   requirements.txt
   swagger_server/__main__.py
   swagger_server/__init__.py
-  swagger_server/config.py
+  swagger_server/config/config.py
   wsgi.py
 )
 
 DIRS_TO_COPY=(
   swagger_server/auth
   swagger_server/database
-  swagger_server/ini
+  swagger_server/config
   swagger_server/response_code
-  ini
+  config
 )
 
 # check for new server-stub directory

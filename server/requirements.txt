@@ -3,8 +3,8 @@ connexion
 flask-sqlalchemy
 ldap3
 psycopg2-binary
+PyJWT
 python_dateutil
 pytz
-setuptools
 swagger-ui-bundle
 uwsgi

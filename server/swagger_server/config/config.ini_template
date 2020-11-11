@@ -1,66 +1,87 @@
+; mock - Mock data flags
+[mock]
+; True = use mock data instead of data found in COmanage
+data = False
+; True = use mock api calls to COmanage (does not create real groups)
+comanage_api = True
+
+; cou - COmanaage non-project COUs for authorization checks
+[cou]
+fabric_active_users = CO:COU:fabric-active-users:members:active
+facility_operators = CO:COU:facility-operators:members:active
+project_leads = CO:COU:project-leads:members:active
+
+; postgres - PostgreSQL database settings
+[postgres]
+; use for docker based server
+host = database
+; use for locally running server
+;host = 127.0.0.1
+port = 5432
+database = postgres
+user = postgres
+password = registry
+
+; ldap - COmanage LDAP settings provided by CILogon staff
+[ldap]
+host =
+user =
+password =
+search_base =
+
+; default-user - Default user settings for when user credentials are not found in the header
+[default-user]
+uuid = 00000000-0000-0000-0000-000000000000
+oidc_claim_sub = http://cilogon.org/serverA/users/000000
+name = anonymous user
+email = anonymous@fabric-testbed.net
+eppn = anonymous@fabric-testbed.net
+; roles must be space delimited if providing more than one
+roles = CO:COU:fabric-active-users:members:active
+
+; uwsgi - uWSGI settings
 [uwsgi]
 ; documentation: http://uwsgi-docs.readthedocs.io/en/latest/Options.html
-
 ; force the specified protocol for default sockets
 protocol = http
-
 ; spawn the specified number of workers/processes
 processes = 2
-
 ; run each worker in prethreaded mode with the specified number of threads
 threads = 2
-
 ; chdir to specified directory before apps loading
 chdir = ./
-
 ; load Django's WSGI file/module
 module = wsgi:app
-
 ; set PYTHONHOME/virtualenv (full path)
 ;virtualenv          = ./venv ;;; now set in run_uwsgi script
-
 ; enable master process
 master = true
-
 ; bind to the specified UNIX/TCP socket using default protocol
 socket = :5000
-
 ; add an http router/server on the specified address **port**
 ;http                = :8000
-
 ; map mountpoint to static directory (or file) **port**
 ;static-map          = /static/=static/
 ;static-map          = /media/=media/
-
 ; bind to the specified UNIX/TCP socket using uwsgi protocol (full path) **socket**
 ; uwsgi-socket        = ./base.sock
-
 ; chmod-socket ... with appropriate permissions - may be needed **socket**
 ; chmod-socket        = 666
-
 ; try to remove all of the generated file/sockets
 vacuum = true
-
 ; automatically transform output to chunked encoding during HTTP 1.1 keepalive
 ;http-auto-chunked = true
-
 ; HTTP 1.1 keepalive support (non-pipelined) requests
 ;http-keepalive = true
-
 ; load apps in each worker instead of the master
 ;lazy-apps = true
-
 ; strategy for allocating/deallocating the WSGI env
 ;wsgi-env-behavior = holy
-
 ; enable post buffering
 ;post-buffering = true
-
 ; prefix logs with date or a strftime string
 ;log-date = true
-
 ; reload workers after the specified amount of managed requests
 max-requests = 5000
-
 ; exit instead of brutal reload on SIGTERM (no more needed)
 die-on-term = true
