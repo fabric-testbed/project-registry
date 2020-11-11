@@ -1,7 +1,7 @@
 ; mock - Mock data flags
 [mock]
 ; True = use mock data instead of data found in COmanage
-data = False
+data = True
 ; True = use mock api calls to COmanage (does not create real groups)
 comanage_api = True
 
