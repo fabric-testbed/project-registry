@@ -11,30 +11,21 @@ config.read('swagger_server/config/config.ini')
 def get_api_person(x_vouch_idp_idtoken):
     api_user = PeopleLong()
     if str(config['mock']['data']).lower() == 'true':
-        api_user = api_utils_oidc_claim_sub_get(config['default-user']['oidc_claim_sub'])
+        api_user = auth_utils_oidc_claim_sub_get(config['default-user']['oidc_claim_sub'])
     elif x_vouch_idp_idtoken:
         decoded = decode(x_vouch_idp_idtoken, verify=False)
         try:
-            api_user = api_utils_oidc_claim_sub_get(decoded.get('sub'))
+            api_user = auth_utils_oidc_claim_sub_get(decoded.get('sub'))
         except IndexError:
             print('User not found')
     else:
-        api_user = api_utils_oidc_claim_sub_get(config['default-user']['oidc_claim_sub'])
+        api_user = auth_utils_oidc_claim_sub_get(config['default-user']['oidc_claim_sub'])
 
     return api_user
 
 
-def api_utils_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
+def auth_utils_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
     from ..response_code.utils import dict_from_query
-    """person details by OIDC Claim sub
-
-    Person details by OIDC Claim sub # noqa: E501
-
-    :param oidc_claim_sub: Search People by OIDC Claim sub (exact match only)
-    :type oidc_claim_sub: str
-
-    :rtype: List[PeopleLong]
-    """
     # response as PeopleLong()
     response = PeopleLong()
 
@@ -46,8 +37,9 @@ def api_utils_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
     try:
         people_id = dfq[0].get('id')
     except IndexError:
-        return 'OIDC Claim sub Not Found: {0}'.format(str(oidc_claim_sub)), 404, \
-               {'X-Error': 'OIDC Claim sub Not Found'}
+        # user not found within COmanage - return default user
+        api_user = auth_utils_oidc_claim_sub_get(config['default-user']['oidc_claim_sub'])
+        return api_user
 
     # get person attributes
     sql_person = """

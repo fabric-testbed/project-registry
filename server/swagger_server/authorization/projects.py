@@ -1,5 +1,5 @@
 from . import FACILITY_OPERATORS, PROJECT_LEADS
-from .api_util import get_api_person
+from .auth_utils import get_api_person
 
 
 def authorize_projects_add_members_put(headers, uuid, created_by):

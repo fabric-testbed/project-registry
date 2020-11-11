@@ -8,8 +8,8 @@ Python (Flask) based ReSTful API service for FABRIC Project Registry management
 - [Usage](#usage) 
   - [Prerequisites](#prereq)
   - [Configuration](#config)
-  - [Development](#devdeploy)
-  - [Production](#proddeploy)
+  - [Deploy Development Server](#devdeploy)
+  - [Deploy Production Server](#proddeploy)
 - [API Specification](#apispec)
   - [API Version](#apiversion)
   - [API People](#apipeople)
@@ -256,7 +256,7 @@ Configuration settings are managed in a few key places
         callback_url: http://127.0.0.1:9090/auth
     ```
 
-### <a name="devdeploy"></a>Development
+### <a name="devdeploy"></a>Deploy Development Server
 
 
 A series of scripts have been created to automate common deployment activities and reside within the `scripts` directory.
@@ -336,25 +336,13 @@ pr-nginx is up-to-date
 Creating pr-api-server ... done
 [INFO] waiting for server to start up
 1 ...
-['mock', 'cou', 'postgres', 'ldap', 'default-user', 'uwsgi']
 [INFO] tables created successfully!
-['mock', 'cou', 'postgres', 'ldap', 'default-user', 'uwsgi']
 [INFO] attempt to load version data
 [INFO] data loaded successfully!
 [INFO] get COmanage cou list
 [INFO] cou objects found
-cn: CO:admins
-cn: CO:members:all
-cn: CO:members:active
-cn: CO:COU:metrics:admins
-cn: CO:COU:Jupyterhub:admins
-cn: CO:COU:metrics:members:all
-cn: CO:COU:Jupyterhub:members:all
-cn: CO:COU:metrics:members:active
-cn: CO:COU:jenkinscicd:members:all
-cn: CO:COU:Jupyterhub:members:active
+...
 cn: CO:COU:project-leads:members:all
-cn: CO:COU:jenkinscicd:members:active
 cn: CO:COU:project-leads:members:active
 cn: CO:COU:facility-operators:members:all
 cn: CO:COU:facility-operators:members:active
@@ -372,29 +360,7 @@ isMemberOf: ['CO:members:all', 'CO:members:active', 'CO:admins', 'CO:COU:Jupyter
 mail: stealey@unc.edu
 uid: http://cilogon.org/serverA/users/242181
        -----------------
-cn: Erica Fu
-eduPersonPrincipalName: ericafu@unc.edu
-isMemberOf: ['CO:members:all', 'CO:members:active', 'CO:admins', 'CO:COU:Jupyterhub:admins', 'CO:COU:Jupyterhub:members:active', 'CO:COU:Jupyterhub:members:all']
-mail: ericafu@renci.org
-uid: http://cilogon.org/serverT/users/15045893
-       -----------------
-cn: Komal Thareja
-eduPersonPrincipalName: kthare10@unc.edu
-isMemberOf: ['CO:members:all', 'CO:members:active', 'CO:admins', 'CO:COU:Jupyterhub:admins', 'CO:COU:Jupyterhub:members:active', 'CO:COU:Jupyterhub:members:all', 'CO:COU:project-leads:members:active', 'CO:COU:project-leads:members:all']
-mail: kthare10@email.unc.edu
-uid: http://cilogon.org/serverA/users/11904101
-       -----------------
-cn: Yaxue Guo
-eduPersonPrincipalName: yaxue@unc.edu
-isMemberOf: ['CO:members:all', 'CO:members:active', 'CO:admins']
-mail: yaxueguo@renci.org
-uid: http://cilogon.org/serverT/users/26542073
-       -----------------
-cn: Charles Carpenter
-eduPersonPrincipalName: cscarp0@uky.edu
-isMemberOf: ['CO:members:all', 'CO:members:active', 'CO:admins', 'CO:COU:metrics:admins', 'CO:COU:metrics:members:active', 'CO:COU:metrics:members:all']
-mail: cscarp0@g.uky.edu
-uid: http://cilogon.org/serverA/users/15626041
+...
 [INFO] people objects returned
 [{'cn': 'anonymous user',
   'eduPersonPrincipalName': 'anonymous@fabric-testbed.net',
@@ -407,26 +373,8 @@ uid: http://cilogon.org/serverA/users/15626041
                  'CO:COU:project-leads:members:active'],
   'mail': 'stealey@unc.edu',
   'uid': 'http://cilogon.org/serverA/users/242181'},
- {'cn': 'Erica Fu',
-  'eduPersonPrincipalName': 'ericafu@unc.edu',
-  'isMemberOf': [],
-  'mail': 'ericafu@renci.org',
-  'uid': 'http://cilogon.org/serverT/users/15045893'},
- {'cn': 'Komal Thareja',
-  'eduPersonPrincipalName': 'kthare10@unc.edu',
-  'isMemberOf': ['CO:COU:project-leads:members:active'],
-  'mail': 'kthare10@email.unc.edu',
-  'uid': 'http://cilogon.org/serverA/users/11904101'},
- {'cn': 'Yaxue Guo',
-  'eduPersonPrincipalName': 'yaxue@unc.edu',
-  'isMemberOf': [],
-  'mail': 'yaxueguo@renci.org',
-  'uid': 'http://cilogon.org/serverT/users/26542073'},
- {'cn': 'Charles Carpenter',
-  'eduPersonPrincipalName': 'cscarp0@uky.edu',
-  'isMemberOf': [],
-  'mail': 'cscarp0@g.uky.edu',
-  'uid': 'http://cilogon.org/serverA/users/15626041'}]
+... 
+]
 [INFO] attempt to load people data
 [INFO] data loaded successfully!
 [INFO] attempt to load relationship data
@@ -462,7 +410,7 @@ After successful authentication the user will be redirected to the api-servers U
 
 ![](images/ui-api-server.png)
 
-### <a name="proddeploy"></a>Production
+### <a name="proddeploy"></a>Deploy Production Server
 
 TODO
 

@@ -1,5 +1,5 @@
 from . import FACILITY_OPERATORS
-from .api_util import get_api_person
+from .auth_utils import get_api_person
 
 
 def authorize_people_get(headers):
