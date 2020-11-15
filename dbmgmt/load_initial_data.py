@@ -6,14 +6,12 @@ from pprint import pprint
 from uuid import uuid4
 
 import psycopg2
+from drop_create_tables import Session
+from ldap3 import Connection, Server, ALL
 from pytz import timezone
 
 config = ConfigParser()
 config.read('../server/swagger_server/config/config.ini')
-
-# from database import Session, LDAP_PARAMS, TIMEZONE
-from ldap3 import Connection, Server, ALL
-from drop_create_tables import Session
 
 # Variables
 TIMEZONE = 'America/New_York'
@@ -36,12 +34,12 @@ ATTRIBUTES = [
 
 # mocks for testing
 default_user = {
-        'cn': config['default-user']['name'],
-        'eduPersonPrincipalName': config['default-user']['eppn'],
-        'isMemberOf': str(config['default-user']['roles']).split(' '),
-        'mail': config['default-user']['email'],
-        'uid': config['default-user']['oidc_claim_sub']
-    }
+    'cn': config['default-user']['name'],
+    'eduPersonPrincipalName': config['default-user']['eppn'],
+    'isMemberOf': str(config['default-user']['roles']).split(' '),
+    'mail': config['default-user']['email'],
+    'uid': config['default-user']['oidc_claim_sub']
+}
 
 if str(config['mock']['data']).lower() == 'true':
     mock_cou = [
@@ -349,7 +347,10 @@ def load_people_data():
 
     sql_list = []
     for person in people:
-        people_uuid = uuid4()
+        if str(config['mock']['data']).lower() == 'true' or str(config['mock']['uis_api']).lower() == 'true':
+            people_uuid = uuid4()
+        else:
+            people_uuid = uis_get_uuid_from_oidc_claim_sub(person.get('uid'))
         command = """
         INSERT INTO fabric_people(uuid, oidc_claim_sub, name, email, eppn, is_facility_operator, is_project_lead)
         VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', FALSE, FALSE)
@@ -364,6 +365,18 @@ def load_people_data():
     if str(config['mock']['data']).lower() == 'true':
         update_project_data()
     load_relationship_data(people)
+
+
+def uis_get_uuid_from_oidc_claim_sub(oidc_claim_sub):
+    co_api_username = config['comanage-api']['api_key']
+    co_api_key = config['comanage-api']['api_key']
+    # TODO: get uuid from uis/uuid/oidc_claim_sub
+    # check if user is the default-user
+    if oidc_claim_sub == config['default-user']['oidc_claim_sub']:
+        return config['default-user']['uuid']
+    # otherwise call uis to get uuid from oidc_claim_sub
+    print(oidc_claim_sub)
+    return ''
 
 
 if __name__ == '__main__':

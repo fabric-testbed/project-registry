@@ -1,87 +1,94 @@
-; mock - Mock data flags
-[mock]
-; True = use mock data instead of data found in COmanage
-data = True
-; True = use mock api calls to COmanage (does not create real groups)
-comanage_api = True
+; comanage-api - COmanage API username and key
+[comanage-api]
+api_key = api_key
+api_username = api_username
 
-; cou - COmanaage non-project COUs for authorization checks
-[cou]
+; default-user - Default user settings for when user credentials are not provided
+[default-user]
+email = anonymous@fabric-testbed.net
+eppn = anonymous@fabric-testbed.net
+name = anonymous user
+oidc_claim_sub = http://cilogon.org/serverA/users/000000
+; roles must be space delimited if providing more than one
+roles = CO:COU:fabric-active-users:members:active
+uuid = 00000000-0000-0000-0000-000000000000
+
+; fabric-cou - COmanaage COUs for authorization checks (non-project based)
+[fabric-cou]
 fabric_active_users = CO:COU:fabric-active-users:members:active
 facility_operators = CO:COU:facility-operators:members:active
 project_leads = CO:COU:project-leads:members:active
 
-; postgres - PostgreSQL database settings
-[postgres]
-; use for docker based server
-host = database
-; use for locally running server
-;host = 127.0.0.1
-port = 5432
-database = postgres
-user = postgres
-password = registry
-
 ; ldap - COmanage LDAP settings provided by CILogon staff
 [ldap]
-host =
-user =
-password =
-search_base =
+host = host
+password = password
+search_base = search_base
+user = user
 
-; default-user - Default user settings for when user credentials are not found in the header
-[default-user]
-uuid = 00000000-0000-0000-0000-000000000000
-oidc_claim_sub = http://cilogon.org/serverA/users/000000
-name = anonymous user
-email = anonymous@fabric-testbed.net
-eppn = anonymous@fabric-testbed.net
-; roles must be space delimited if providing more than one
-roles = CO:COU:fabric-active-users:members:active
+; mock - Mock data flags
+[mock]
+; True = use mock api calls to COmanage (does not create real groups)
+comanage_api = True
+; True = use mock data instead of data found in COmanage
+data = True
+; True = use mock api calls to User Information Service (generates UUID values for users)
+uis_api = True
+
+; postgres - PostgreSQL database settings
+[postgres]
+database = postgres
+; use for docker based server
+;host = database
+; use for locally running server
+host = 127.0.0.1
+password = registry
+port = 5432
+user = postgres
 
 ; uwsgi - uWSGI settings
 [uwsgi]
 ; documentation: http://uwsgi-docs.readthedocs.io/en/latest/Options.html
-; force the specified protocol for default sockets
-protocol = http
-; spawn the specified number of workers/processes
-processes = 2
-; run each worker in prethreaded mode with the specified number of threads
-threads = 2
 ; chdir to specified directory before apps loading
 chdir = ./
-; load Django's WSGI file/module
-module = wsgi:app
-; set PYTHONHOME/virtualenv (full path)
-;virtualenv          = ./venv ;;; now set in run_uwsgi script
-; enable master process
-master = true
-; bind to the specified UNIX/TCP socket using default protocol
-socket = :5000
+; chmod-socket ... with appropriate permissions - may be needed **socket**
+;chmod-socket        = 666
+; exit instead of brutal reload on SIGTERM (no more needed)
+die-on-term = true
 ; add an http router/server on the specified address **port**
 ;http                = :8000
-; map mountpoint to static directory (or file) **port**
-;static-map          = /static/=static/
-;static-map          = /media/=media/
-; bind to the specified UNIX/TCP socket using uwsgi protocol (full path) **socket**
-; uwsgi-socket        = ./base.sock
-; chmod-socket ... with appropriate permissions - may be needed **socket**
-; chmod-socket        = 666
-; try to remove all of the generated file/sockets
-vacuum = true
 ; automatically transform output to chunked encoding during HTTP 1.1 keepalive
 ;http-auto-chunked = true
 ; HTTP 1.1 keepalive support (non-pipelined) requests
 ;http-keepalive = true
 ; load apps in each worker instead of the master
 ;lazy-apps = true
-; strategy for allocating/deallocating the WSGI env
-;wsgi-env-behavior = holy
-; enable post buffering
-;post-buffering = true
 ; prefix logs with date or a strftime string
 ;log-date = true
+; enable master process
+master = true
 ; reload workers after the specified amount of managed requests
 max-requests = 5000
-; exit instead of brutal reload on SIGTERM (no more needed)
-die-on-term = true
+; load Flask's WSGI file/module
+module = wsgi:app
+; enable post buffering
+;post-buffering = true
+; spawn the specified number of workers/processes
+processes = 2
+; force the specified protocol for default sockets
+protocol = http
+; bind to the specified UNIX/TCP socket using default protocol
+socket = :5000
+; map mountpoint to static directory (or file) **port**
+;static-map          = /static/=static/
+;static-map          = /media/=media/
+; run each worker in prethreaded mode with the specified number of threads
+threads = 2
+; bind to the specified UNIX/TCP socket using uwsgi protocol (full path) **socket**
+;uwsgi-socket        = ./base.sock
+; try to remove all of the generated file/sockets
+vacuum = true
+; set PYTHONHOME/virtualenv (full path)
+;virtualenv          = ./venv ;;; now set in run_uwsgi script
+; strategy for allocating/deallocating the WSGI env
+;wsgi-env-behavior = holy

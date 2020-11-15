@@ -1,16 +1,16 @@
+from datetime import datetime
 from uuid import uuid4
-from flask import request
 
 import psycopg2
+from flask import request
+from pytz import timezone
 from swagger_server.models.project_long import ProjectLong  # noqa: E501
 from swagger_server.models.project_short import ProjectShort  # noqa: E501
-from swagger_server.models.people_short import PeopleShort
+
 from .people_controller import people_uuid_get
-
 from .utils import dict_from_query, run_sql_commands
-from datetime import datetime
-from pytz import timezone
-
+from ..external_apis.comanage_api import comanage_projects_add_members_put, comanage_projects_add_owners_put, \
+    comanage_projects_remove_members_put, comanage_projects_remove_owners_put
 from ..authorization.people import get_api_person
 from ..authorization.projects import filter_projects_get, authorize_projects_add_members_put, \
     authorize_projects_add_owners_put, authorize_projects_add_tags_put, authorize_projects_create_post, \
@@ -49,6 +49,9 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
                {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_members:
+        if not comanage_projects_add_members_put(uuid, project_members):
+            return 'Unable to add members: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to add members in COmanage'}
         for person_uuid in project_members:
             try:
                 # get people id
@@ -122,6 +125,9 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
                {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_owners:
+        if not comanage_projects_add_owners_put(uuid, project_owners):
+            return 'Unable to add owners: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to add owners in COmanage'}
         for person_uuid in project_owners:
             try:
                 # get people id
@@ -234,7 +240,8 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
     return projects_uuid_get(uuid)
 
 
-def projects_create_post(name, description, facility, tags=None, project_owners=None, project_members=None):  # noqa: E501
+def projects_create_post(name, description, facility, tags=None, project_owners=None,
+                         project_members=None):  # noqa: E501
     """create new project
 
     Create new project # noqa: E501
@@ -301,6 +308,9 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     else:
         project_owners = [api_person.uuid]
     if project_owners:
+        if not comanage_projects_add_owners_put(project_uuid, project_owners):
+            return 'Unable to add owners: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to add owners in COmanage'}
         for person_uuid in project_owners:
             try:
                 # get people id
@@ -358,6 +368,9 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
                 pass
     # project members
     if project_members:
+        if not comanage_projects_add_members_put(project_uuid, project_members):
+            return 'Unable to add members: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to add members in COmanage'}
         for person_uuid in project_members:
             try:
                 # get people id
@@ -444,6 +457,16 @@ def projects_delete_delete(uuid):  # noqa: E501
     if not authorize_projects_delete_delete(request.headers, created_by):
         return 'Authorization information is missing or invalid: /projects/delete', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+    # TODO: get list of project_owners
+    project_owners = []
+    if not comanage_projects_remove_owners_put(uuid, project_owners):
+        return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
+               {'X-Error': 'Unable to remove owners in COmanage'}
+    # TODO: get list of project_members
+    project_members = []
+    if not comanage_projects_remove_members_put(uuid, project_members):
+        return 'Unable to remove members: {0}'.format(str(uuid)), 501, \
+               {'X-Error': 'Unable to remove members in COmanage'}
 
     # project owners
     sql = """
@@ -569,6 +592,9 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
                {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_members:
+        if not comanage_projects_remove_members_put(uuid, project_members):
+            return 'Unable to remove members: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to remove members in COmanage'}
         for person_uuid in project_members:
             try:
                 # get people id
@@ -663,6 +689,9 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
                {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_owners:
+        if not comanage_projects_remove_owners_put(uuid, project_owners):
+            return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to remove owners in COmanage'}
         for person_uuid in project_owners:
             try:
                 # get people id
@@ -749,6 +778,7 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
     run_sql_commands(commands)
 
     return projects_uuid_get(uuid)
+
 
 def projects_update_put(uuid, name=None, description=None, facility=None):  # noqa: E501
     """update an existing project
