@@ -1,4 +1,4 @@
-from . import FACILITY_OPERATORS, PROJECT_LEADS
+from . import FACILITY_OPERATORS, PROJECT_LEADS, DEFAULT_USER_UUID
 from .auth_utils import get_api_person
 
 
@@ -138,7 +138,10 @@ def filter_projects_delete_delete(headers, response):
 def authorize_projects_get(headers):
     # TODO: check if any authorization is required here at all
     # get api_user
-    # api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
+    api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
+    if api_person.uuid == DEFAULT_USER_UUID:
+        return False
+
     return True
 
 

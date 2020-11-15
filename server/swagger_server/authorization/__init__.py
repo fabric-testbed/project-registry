@@ -7,3 +7,6 @@ config.read('swagger_server/config/config.ini')
 FABRIC_ACTIVE_USERS = config['fabric-cou']['fabric_active_users']
 FACILITY_OPERATORS = config['fabric-cou']['facility_operators']
 PROJECT_LEADS = config['fabric-cou']['project_leads']
+
+# set default user uuid flag
+DEFAULT_USER_UUID = config['default-user']['uuid']

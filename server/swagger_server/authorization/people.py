@@ -1,11 +1,14 @@
-from . import FACILITY_OPERATORS
+from . import FACILITY_OPERATORS, DEFAULT_USER_UUID
 from .auth_utils import get_api_person
 
 
 def authorize_people_get(headers):
     # TODO: check if any authorization is required here at all
     # get api_user
-    # api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
+    api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
+    if api_person.uuid == DEFAULT_USER_UUID:
+        return False
+
     return True
 
 

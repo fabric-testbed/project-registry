@@ -348,7 +348,10 @@ def load_people_data():
     sql_list = []
     for person in people:
         if str(config['mock']['data']).lower() == 'true' or str(config['mock']['uis_api']).lower() == 'true':
-            people_uuid = uuid4()
+            if person.get('uid') == config['default-user']['oidc_claim_sub']:
+                people_uuid = config['default-user']['uuid']
+            else:
+                people_uuid = uuid4()
         else:
             people_uuid = uis_get_uuid_from_oidc_claim_sub(person.get('uid'))
         command = """
