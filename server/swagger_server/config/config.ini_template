@@ -39,9 +39,9 @@ uis_api = True
 [postgres]
 database = postgres
 ; use for docker based server
-;host = database
+host = database
 ; use for locally running server
-host = 127.0.0.1
+;host = 127.0.0.1
 password = registry
 port = 5432
 user = postgres
