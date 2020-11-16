@@ -1,26 +1,35 @@
-from configparser import ConfigParser
-
-config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+from . import MOCK_DATA, MOCK_COMANAGE_API, MOCK_UIS_API
 
 
 def comanage_projects_add_members_put(project_uuid, project_members):
     project_cou = 'CO:COU:' + str(project_uuid) + '-pm:members:active'
+    if str(MOCK_COMANAGE_API).lower() == 'true':
+        return True
+
     return True
 
 
 def comanage_projects_add_owners_put(project_uuid, project_owners):
     project_cou = 'CO:COU:' + str(project_uuid) + '-po:members:active'
+    if str(MOCK_COMANAGE_API).lower() == 'true':
+        return True
+
     return True
 
 
 def comanage_projects_remove_members_put(project_uuid, project_members):
     project_cou = 'CO:COU:' + str(project_uuid) + '-pm:members:active'
+    if str(MOCK_COMANAGE_API).lower() == 'true':
+        return True
+
     return True
 
 
 def comanage_projects_remove_owners_put(project_uuid, project_owners):
     project_cou = 'CO:COU:' + str(project_uuid) + '-po:members:active'
+    if str(MOCK_COMANAGE_API).lower() == 'true':
+        return True
+
     return True
 
 

@@ -17,27 +17,6 @@ POSTGRES_ENGINE = 'postgres://' + config['postgres']['user'] + ':' + config['pos
 engine = create_engine(POSTGRES_ENGINE)
 Session = sessionmaker(bind=engine)
 
-
-# CONFIG_FILE = 'swagger_server/config/pr_database.ini'
-# CONFIG_SECTION = 'postgres'
-#
-# params = config(filename=CONFIG_FILE, section=CONFIG_SECTION)
-#
-# POSTGRES_ENGINE = 'postgres://' + params['user'] + ':' + params['password'] \
-#                   + '@' + params['host'] + ':' + params['port'] \
-#                   + '/' + params['database']
-#
-# engine = create_engine(POSTGRES_ENGINE)
-# Session = sessionmaker(bind=engine)
-
 app = connexion.App(__name__, specification_dir='./swagger/')
 app.app.json_encoder = encoder.JSONEncoder
 app.add_api('swagger.yaml', arguments={'title': 'FABRIC Project Registry'}, pythonic_params=True)
-
-# Setup COmanage LDAP connection
-# CONFIG_FILE = 'swagger_server/config/pr_comanage.ini'
-# CONFIG_SECTION = 'ldap'
-
-# LDAP_PARAMS = config(filename=CONFIG_FILE, section=CONFIG_SECTION)
-# LDAP_PARAMS = config['ldap']
-# print(LDAP_PARAMS)
