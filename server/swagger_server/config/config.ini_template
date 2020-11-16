@@ -32,6 +32,10 @@ user = user
 comanage_api = True
 ; True = use mock data instead of data found in COmanage
 data = True
+; mock_people
+mock_people_file = mock_people.json
+; mock_cous
+mock_cou_file = mock_cou.json
 ; True = use mock api calls to User Information Service (generates UUID values for users)
 uis_api = True
 
