@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
-import sys
-
-import psycopg2
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-# from . import encoder
 
 from configparser import ConfigParser
 
-# from .config.config import config
+import psycopg2
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 config = ConfigParser()
 config.read('../server/swagger_server/config/config.ini')
-print(config.sections())
 
 POSTGRES_ENGINE = 'postgres://' + config['postgres']['user'] + ':' + config['postgres']['password'] \
                   + '@' + config['postgres']['host'] + ':' + config['postgres']['port'] \
@@ -21,6 +15,7 @@ POSTGRES_ENGINE = 'postgres://' + config['postgres']['user'] + ':' + config['pos
 
 engine = create_engine(POSTGRES_ENGINE)
 Session = sessionmaker(bind=engine)
+
 
 def create_tables():
     """ create tables in the PostgreSQL database"""

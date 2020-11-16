@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import re
 from configparser import ConfigParser
 from datetime import datetime
@@ -12,6 +13,10 @@ from pytz import timezone
 
 config = ConfigParser()
 config.read('../server/swagger_server/config/config.ini')
+
+# Mock data files
+MOCK_PEOPLE_FILE = config['mock']['mock_people_file']
+MOCK_COU_FILE = config['mock']['mock_cou_file']
 
 # Variables
 TIMEZONE = 'America/New_York'
@@ -42,56 +47,15 @@ default_user = {
 }
 
 if str(config['mock']['data']).lower() == 'true':
-    mock_cou = [
-        'CO:COU:fabric-active-users:members:active',
-        'CO:COU:project-leads:members:active',
-        'CO:COU:facility-operators:members:active',
-        'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
-        'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-po:members:active'
-    ]
+    with open(MOCK_COU_FILE, "r") as file_object:
+        mock_cou = json.load(file_object)
 else:
     mock_cou = []
 
 if str(config['mock']['data']).lower() == 'true':
-    mock_people = [
-        default_user,
-        {
-            'cn': 'John Q. Public',
-            'isMemberOf': [
-                'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
-                'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-po:members:active',
-                'CO:COU:project-leads:members:active'
-            ],
-            'mail': 'public@project-registry.org',
-            'uid': 'http://cilogon.org/serverA/users/000002'
-        },
-        {
-            'cn': 'Eliza Fuller',
-            'eduPersonPrincipalName': 'efuller@project-registry.org',
-            'isMemberOf': [],
-            'mail': 'efuller@not-project-registry.org',
-            'uid': 'http://cilogon.org/serverT/users/12345678'
-        },
-        {
-            'cn': 'Kendra Theory',
-            'eduPersonPrincipalName': 'ktheory@project-registry.org',
-            'isMemberOf': [
-                'CO:COU:project-leads:members:active'
-            ],
-            'mail': 'ktheory@email.project-registry.org',
-            'uid': 'http://cilogon.org/serverA/users/87654321'
-        },
-        {
-            'cn': 'Yolanda Guerra',
-            'eduPersonPrincipalName': 'yolanda@@project-registry.org',
-            'isMemberOf': [
-                'CO:COU:deadbeef-dead-beef-dead-beefdeadbeef-pm:members:active',
-                'CO:COU:project-leads:members:active'
-            ],
-            'mail': 'yolandaguerra@not-project-registry.org',
-            'uid': 'http://cilogon.org/serverT/users/24681357'
-        }
-    ]
+    with open(MOCK_PEOPLE_FILE, "r") as file_object:
+        mock_people = json.load(file_object)
+    mock_people.append(default_user)
 else:
     mock_people = [default_user]
 
