@@ -6,6 +6,8 @@ from .utils import dict_from_query
 from ..authorization.people import authorize_people_get, authorize_people_oidc_claim_sub_get, \
     authorize_people_uuid_get
 
+from . import DEFAULT_USER_UUID, MOCK_DATA, MOCK_COMANAGE_API, MOCK_UIS_API
+
 
 def people_get(person_name=None):  # noqa: E501
     """list of people
@@ -33,6 +35,15 @@ def people_get(person_name=None):  # noqa: E501
         sql = sql + """
         WHERE name ILIKE '%{}%'
         """.format(str(person_name))
+        if not str(MOCK_DATA).lower() == 'true':
+            sql = sql + """
+            AND uuid != '{}'
+            """.format(str(DEFAULT_USER_UUID))
+
+    elif not str(MOCK_DATA).lower() == 'true':
+        sql = sql + """
+        WHERE uuid != '{}'
+        """.format(str(DEFAULT_USER_UUID))
 
     sql = sql + """
     ORDER BY name;

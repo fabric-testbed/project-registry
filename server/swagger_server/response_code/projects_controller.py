@@ -16,8 +16,9 @@ from ..authorization.projects import filter_projects_get, authorize_projects_add
     authorize_projects_add_owners_put, authorize_projects_add_tags_put, authorize_projects_create_post, \
     authorize_projects_delete_delete, authorize_projects_get, authorize_projects_remove_members_put, \
     authorize_projects_remove_owners_put, authorize_projects_remove_tags_put, authorize_projects_update_put, \
-    authorize_projects_uuid_get
+    authorize_projects_uuid_get, DEFAULT_USER_UUID
 
+from . import DEFAULT_USER_UUID, MOCK_DATA, MOCK_COMANAGE_API, MOCK_UIS_API
 
 def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     """add members to an existing project
@@ -53,40 +54,41 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
             return 'Unable to add members: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to add members in COmanage'}
         for person_uuid in project_members:
-            try:
-                # get people id
-                sql = """
-                SELECT id from fabric_people WHERE uuid = '{0}';
-                """.format(person_uuid)
-                dfq = dict_from_query(sql)
+            if str(MOCK_DATA).lower() == 'true' or person_uuid != DEFAULT_USER_UUID:
                 try:
-                    people_id = dfq[0].get('id')
-                except IndexError:
-                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
-                           {'X-Error': 'Person UUID Not Found'}
+                    # get people id
+                    sql = """
+                    SELECT id from fabric_people WHERE uuid = '{0}';
+                    """.format(person_uuid)
+                    dfq = dict_from_query(sql)
+                    try:
+                        people_id = dfq[0].get('id')
+                    except IndexError:
+                        return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                               {'X-Error': 'Person UUID Not Found'}
 
-                # add to project_members table
-                sql = """
-                INSERT INTO project_members(projects_id, people_id)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT project_members_duplicate
-                DO NOTHING
-                """.format(project_id, people_id)
-                sql_list.append(sql)
+                    # add to project_members table
+                    sql = """
+                    INSERT INTO project_members(projects_id, people_id)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT project_members_duplicate
+                    DO NOTHING
+                    """.format(project_id, people_id)
+                    sql_list.append(sql)
 
-                # add cou to roles table
-                cou = 'CO:COU:' + str(uuid) + '-pm:members:active'
-                sql = """
-                INSERT INTO roles(people_id, role)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT roles_duplicate
-                DO NOTHING
-                """.format(people_id, cou)
-                sql_list.append(sql)
+                    # add cou to roles table
+                    cou = 'CO:COU:' + str(uuid) + '-pm:members:active'
+                    sql = """
+                    INSERT INTO roles(people_id, role)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT roles_duplicate
+                    DO NOTHING
+                    """.format(people_id, cou)
+                    sql_list.append(sql)
 
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-                pass
+                except (Exception, psycopg2.DatabaseError) as error:
+                    print(error)
+                    pass
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to add project members data")
@@ -129,59 +131,60 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
             return 'Unable to add owners: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to add owners in COmanage'}
         for person_uuid in project_owners:
-            try:
-                # get people id
-                sql = """
-                SELECT id FROM fabric_people WHERE uuid = '{0}';
-                """.format(person_uuid)
-                dfq = dict_from_query(sql)
+            if str(MOCK_DATA).lower() == 'true' or person_uuid != DEFAULT_USER_UUID:
                 try:
-                    people_id = dfq[0].get('id')
-                except IndexError:
-                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
-                           {'X-Error': 'Person UUID Not Found'}
+                    # get people id
+                    sql = """
+                    SELECT id FROM fabric_people WHERE uuid = '{0}';
+                    """.format(person_uuid)
+                    dfq = dict_from_query(sql)
+                    try:
+                        people_id = dfq[0].get('id')
+                    except IndexError:
+                        return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                               {'X-Error': 'Person UUID Not Found'}
 
-                # add to project_owners table
-                sql = """
-                INSERT INTO project_owners(projects_id, people_id)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT project_owners_duplicate
-                DO NOTHING
-                """.format(project_id, people_id)
-                sql_list.append(sql)
+                    # add to project_owners table
+                    sql = """
+                    INSERT INTO project_owners(projects_id, people_id)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT project_owners_duplicate
+                    DO NOTHING
+                    """.format(project_id, people_id)
+                    sql_list.append(sql)
 
-                # add to project_members table
-                sql = """
-                INSERT INTO project_members(projects_id, people_id)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT project_members_duplicate
-                DO NOTHING
-                """.format(project_id, people_id)
-                sql_list.append(sql)
+                    # add to project_members table
+                    sql = """
+                    INSERT INTO project_members(projects_id, people_id)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT project_members_duplicate
+                    DO NOTHING
+                    """.format(project_id, people_id)
+                    sql_list.append(sql)
 
-                # add -po cou to roles table
-                cou = 'CO:COU:' + str(uuid) + '-po:members:active'
-                sql = """
-                INSERT INTO roles(people_id, role)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT roles_duplicate
-                DO NOTHING
-                """.format(people_id, cou)
-                sql_list.append(sql)
+                    # add -po cou to roles table
+                    cou = 'CO:COU:' + str(uuid) + '-po:members:active'
+                    sql = """
+                    INSERT INTO roles(people_id, role)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT roles_duplicate
+                    DO NOTHING
+                    """.format(people_id, cou)
+                    sql_list.append(sql)
 
-                # add -pm cou to roles table
-                cou = 'CO:COU:' + str(uuid) + '-pm:members:active'
-                sql = """
-                INSERT INTO roles(people_id, role)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT roles_duplicate
-                DO NOTHING
-                """.format(people_id, cou)
-                sql_list.append(sql)
+                    # add -pm cou to roles table
+                    cou = 'CO:COU:' + str(uuid) + '-pm:members:active'
+                    sql = """
+                    INSERT INTO roles(people_id, role)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT roles_duplicate
+                    DO NOTHING
+                    """.format(people_id, cou)
+                    sql_list.append(sql)
 
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-                pass
+                except (Exception, psycopg2.DatabaseError) as error:
+                    print(error)
+                    pass
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to add project owners data")
@@ -312,100 +315,102 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
             return 'Unable to add owners: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to add owners in COmanage'}
         for person_uuid in project_owners:
-            try:
-                # get people id
-                sql = """
-                SELECT id FROM fabric_people WHERE uuid = '{0}';
-                """.format(person_uuid)
-                dfq = dict_from_query(sql)
+            if str(MOCK_DATA).lower() == 'true' or person_uuid != DEFAULT_USER_UUID:
                 try:
-                    people_id = dfq[0].get('id')
-                except IndexError:
-                    projects_delete_delete(str(project_uuid))
-                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
-                           {'X-Error': 'Person UUID Not Found'}
+                    # get people id
+                    sql = """
+                    SELECT id FROM fabric_people WHERE uuid = '{0}';
+                    """.format(person_uuid)
+                    dfq = dict_from_query(sql)
+                    try:
+                        people_id = dfq[0].get('id')
+                    except IndexError:
+                        projects_delete_delete(str(project_uuid))
+                        return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                               {'X-Error': 'Person UUID Not Found'}
 
-                # add to project_owners table
-                sql = """
-                INSERT INTO project_owners(projects_id, people_id)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT project_owners_duplicate
-                DO NOTHING
-                """.format(project_id, people_id)
-                sql_list.append(sql)
+                    # add to project_owners table
+                    sql = """
+                    INSERT INTO project_owners(projects_id, people_id)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT project_owners_duplicate
+                    DO NOTHING
+                    """.format(project_id, people_id)
+                    sql_list.append(sql)
 
-                # add to project_members table
-                sql = """
-                INSERT INTO project_members(projects_id, people_id)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT project_members_duplicate
-                DO NOTHING
-                """.format(project_id, people_id)
-                sql_list.append(sql)
+                    # add to project_members table
+                    sql = """
+                    INSERT INTO project_members(projects_id, people_id)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT project_members_duplicate
+                    DO NOTHING
+                    """.format(project_id, people_id)
+                    sql_list.append(sql)
 
-                # add cou to roles table
-                cou = 'CO:COU:' + str(project_uuid) + '-po:members:active'
-                sql = """
-                INSERT INTO roles(people_id, role)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT roles_duplicate
-                DO NOTHING
-                """.format(people_id, cou)
-                sql_list.append(sql)
+                    # add cou to roles table
+                    cou = 'CO:COU:' + str(project_uuid) + '-po:members:active'
+                    sql = """
+                    INSERT INTO roles(people_id, role)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT roles_duplicate
+                    DO NOTHING
+                    """.format(people_id, cou)
+                    sql_list.append(sql)
 
-                # add cou to roles table
-                cou = 'CO:COU:' + str(project_uuid) + '-pm:members:active'
-                sql = """
-                INSERT INTO roles(people_id, role)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT roles_duplicate
-                DO NOTHING
-                """.format(people_id, cou)
-                sql_list.append(sql)
+                    # add cou to roles table
+                    cou = 'CO:COU:' + str(project_uuid) + '-pm:members:active'
+                    sql = """
+                    INSERT INTO roles(people_id, role)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT roles_duplicate
+                    DO NOTHING
+                    """.format(people_id, cou)
+                    sql_list.append(sql)
 
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-                pass
+                except (Exception, psycopg2.DatabaseError) as error:
+                    print(error)
+                    pass
     # project members
     if project_members:
         if not comanage_projects_add_members_put(project_uuid, project_members):
             return 'Unable to add members: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to add members in COmanage'}
         for person_uuid in project_members:
-            try:
-                # get people id
-                sql = """
-                SELECT id FROM fabric_people WHERE uuid = '{0}';
-                """.format(person_uuid)
-                dfq = dict_from_query(sql)
+            if str(MOCK_DATA).lower() == 'true' or person_uuid != DEFAULT_USER_UUID:
                 try:
-                    people_id = dfq[0].get('id')
-                except IndexError:
-                    projects_delete_delete(str(project_uuid))
-                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
-                           {'X-Error': 'Person UUID Not Found'}
+                    # get people id
+                    sql = """
+                    SELECT id FROM fabric_people WHERE uuid = '{0}';
+                    """.format(person_uuid)
+                    dfq = dict_from_query(sql)
+                    try:
+                        people_id = dfq[0].get('id')
+                    except IndexError:
+                        projects_delete_delete(str(project_uuid))
+                        return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                               {'X-Error': 'Person UUID Not Found'}
 
-                # add to project_members table
-                sql = """
-                INSERT INTO project_members(projects_id, people_id)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT project_members_duplicate
-                DO NOTHING
-                """.format(project_id, people_id)
-                sql_list.append(sql)
+                    # add to project_members table
+                    sql = """
+                    INSERT INTO project_members(projects_id, people_id)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT project_members_duplicate
+                    DO NOTHING
+                    """.format(project_id, people_id)
+                    sql_list.append(sql)
 
-                # add cou to roles table
-                cou = 'CO:COU:' + str(project_uuid) + '-pm:members:active'
-                sql = """
-                INSERT INTO roles(people_id, role)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT roles_duplicate
-                DO NOTHING
-                """.format(people_id, cou)
-                sql_list.append(sql)
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-                pass
+                    # add cou to roles table
+                    cou = 'CO:COU:' + str(project_uuid) + '-pm:members:active'
+                    sql = """
+                    INSERT INTO roles(people_id, role)
+                    VALUES ({0}, '{1}')
+                    ON CONFLICT ON CONSTRAINT roles_duplicate
+                    DO NOTHING
+                    """.format(people_id, cou)
+                    sql_list.append(sql)
+                except (Exception, psycopg2.DatabaseError) as error:
+                    print(error)
+                    pass
 
     # tags
     if tags:
@@ -596,61 +601,62 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
             return 'Unable to remove members: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to remove members in COmanage'}
         for person_uuid in project_members:
-            try:
-                # get people id
-                sql = """
-                SELECT id FROM fabric_people WHERE uuid = '{0}';
-                """.format(person_uuid)
-                dfq = dict_from_query(sql)
+            if str(MOCK_DATA).lower() == 'true' or person_uuid != DEFAULT_USER_UUID:
                 try:
-                    people_id = dfq[0].get('id')
-                except IndexError:
-                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
-                           {'X-Error': 'Person UUID Not Found'}
-
-                # remove people_id from project_members table
-                sql = """
-                DELETE FROM project_members
-                WHERE project_members.projects_id = {0} AND project_members.people_id = {1};
-                """.format(project_id, people_id)
-                sql_list.append(sql)
-
-                # remove -pm cou from roles table
-                cou = 'CO:COU:' + uuid + '-pm:members:active'
-                sql = """
-                DELETE FROM roles
-                WHERE roles.people_id = {0} AND role = '{1}';
-                """.format(people_id, cou)
-                sql_list.append(sql)
-
-                # check if person is also in project_owners
-                sql_po_check = """
-                SELECT EXISTS (
-                    SELECT 1 FROM project_owners 
-                    WHERE project_owners.projects_id = {0} and project_owners.people_id = {1}
-                );
-                """.format(project_id, people_id)
-                dfq = dict_from_query(sql_po_check)
-                print(dfq[0])
-                if dfq[0].get('exists'):
-                    # remove people_id from project_owners table
+                    # get people id
                     sql = """
-                    DELETE FROM project_owners
-                    WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
+                    SELECT id FROM fabric_people WHERE uuid = '{0}';
+                    """.format(person_uuid)
+                    dfq = dict_from_query(sql)
+                    try:
+                        people_id = dfq[0].get('id')
+                    except IndexError:
+                        return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                               {'X-Error': 'Person UUID Not Found'}
+
+                    # remove people_id from project_members table
+                    sql = """
+                    DELETE FROM project_members
+                    WHERE project_members.projects_id = {0} AND project_members.people_id = {1};
                     """.format(project_id, people_id)
                     sql_list.append(sql)
 
-                    # remove -po cou from roles table
-                    cou = 'CO:COU:' + uuid + '-po:members:active'
+                    # remove -pm cou from roles table
+                    cou = 'CO:COU:' + uuid + '-pm:members:active'
                     sql = """
                     DELETE FROM roles
                     WHERE roles.people_id = {0} AND role = '{1}';
                     """.format(people_id, cou)
                     sql_list.append(sql)
 
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-                pass
+                    # check if person is also in project_owners
+                    sql_po_check = """
+                    SELECT EXISTS (
+                        SELECT 1 FROM project_owners 
+                        WHERE project_owners.projects_id = {0} and project_owners.people_id = {1}
+                    );
+                    """.format(project_id, people_id)
+                    dfq = dict_from_query(sql_po_check)
+                    print(dfq[0])
+                    if dfq[0].get('exists'):
+                        # remove people_id from project_owners table
+                        sql = """
+                        DELETE FROM project_owners
+                        WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
+                        """.format(project_id, people_id)
+                        sql_list.append(sql)
+
+                        # remove -po cou from roles table
+                        cou = 'CO:COU:' + uuid + '-po:members:active'
+                        sql = """
+                        DELETE FROM roles
+                        WHERE roles.people_id = {0} AND role = '{1}';
+                        """.format(people_id, cou)
+                        sql_list.append(sql)
+
+                except (Exception, psycopg2.DatabaseError) as error:
+                    print(error)
+                    pass
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to remove project members data")
@@ -693,36 +699,37 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
             return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to remove owners in COmanage'}
         for person_uuid in project_owners:
-            try:
-                # get people id
-                sql = """
-                    SELECT id FROM fabric_people WHERE uuid = '{0}';
-                    """.format(person_uuid)
-                dfq = dict_from_query(sql)
+            if str(MOCK_DATA).lower() == 'true' or person_uuid != DEFAULT_USER_UUID:
                 try:
-                    people_id = dfq[0].get('id')
-                except IndexError:
-                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
-                           {'X-Error': 'Person UUID Not Found'}
+                    # get people id
+                    sql = """
+                        SELECT id FROM fabric_people WHERE uuid = '{0}';
+                        """.format(person_uuid)
+                    dfq = dict_from_query(sql)
+                    try:
+                        people_id = dfq[0].get('id')
+                    except IndexError:
+                        return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                               {'X-Error': 'Person UUID Not Found'}
 
-                # remove people_id from project_owners table
-                sql = """
-                DELETE FROM project_owners
-                WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
-                    """.format(project_id, people_id)
-                sql_list.append(sql)
+                    # remove people_id from project_owners table
+                    sql = """
+                    DELETE FROM project_owners
+                    WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
+                        """.format(project_id, people_id)
+                    sql_list.append(sql)
 
-                # remove cou from roles table
-                cou = 'CO:COU:' + uuid + '-pm:members:active'
-                sql = """
-                DELETE FROM roles
-                WHERE roles.people_id = {0} AND role = '{1}';
-                """.format(people_id, cou)
-                sql_list.append(sql)
+                    # remove cou from roles table
+                    cou = 'CO:COU:' + uuid + '-pm:members:active'
+                    sql = """
+                    DELETE FROM roles
+                    WHERE roles.people_id = {0} AND role = '{1}';
+                    """.format(people_id, cou)
+                    sql_list.append(sql)
 
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-                pass
+                except (Exception, psycopg2.DatabaseError) as error:
+                    print(error)
+                    pass
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to remove project owners data")
