@@ -10,3 +10,5 @@ MOCK_UIS_API = config['mock']['uis_api']
 
 # set default user uuid flag
 DEFAULT_USER_UUID = config['default-user']['uuid']
+DEFAULT_USER_NAME = config['default-user']['name']
+DEFAULT_USER_EMAIL = config['default-user']['email']

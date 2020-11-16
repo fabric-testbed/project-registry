@@ -18,7 +18,7 @@ from ..authorization.projects import filter_projects_get, authorize_projects_add
     authorize_projects_remove_owners_put, authorize_projects_remove_tags_put, authorize_projects_update_put, \
     authorize_projects_uuid_get, DEFAULT_USER_UUID
 
-from . import DEFAULT_USER_UUID, MOCK_DATA, MOCK_COMANAGE_API, MOCK_UIS_API
+from . import DEFAULT_USER_UUID, DEFAULT_USER_NAME, DEFAULT_USER_EMAIL, MOCK_DATA, MOCK_COMANAGE_API, MOCK_UIS_API
 
 def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     """add members to an existing project
@@ -554,7 +554,10 @@ def projects_get(project_name=None):  # noqa: E501
 
         # project created by
         pc = people_uuid_get(project.get('created_by'))
-        created_by = {'uuid': pc.uuid, 'name': pc.name, 'email': pc.email}
+        try:
+            created_by = {'uuid': pc.uuid, 'name': pc.name, 'email': pc.email}
+        except AttributeError:
+            created_by = {'uuid': DEFAULT_USER_UUID, 'name': DEFAULT_USER_NAME, 'email': DEFAULT_USER_EMAIL}
 
         ps.name = project.get('name')
         ps.description = project.get('description')
