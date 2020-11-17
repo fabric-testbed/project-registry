@@ -25,7 +25,7 @@ TIMEZONE = 'America/New_York'
 DEFAULT_NAME = 'INSERT_PROJECT_NAME'
 DEFAULT_DESCRIPTION = 'INSERT_PROJECT_DESCRIPTION'
 DEFAULT_FACILITY = 'INSERT_PROJECT_FACILITY'
-DEFAULT_CREATED_BY = None
+DEFAULT_CREATED_BY = config['default-user']['uuid']
 DEFAULT_CREATED_TIME = None
 
 # Attributes to request from COmanage LDAP
@@ -311,13 +311,12 @@ def load_people_data():
 
     sql_list = []
     for person in people:
-        if str(config['mock']['data']).lower() == 'true' or str(config['mock']['uis_api']).lower() == 'true':
-            if person.get('uid') == config['default-user']['oidc_claim_sub']:
-                people_uuid = config['default-user']['uuid']
-            else:
-                people_uuid = uuid4()
+        if person.get('uid') == config['default-user']['oidc_claim_sub']:
+            people_uuid = config['default-user']['uuid']
+        elif config.getboolean('mock', 'data') or config.getboolean('mock', 'uis_api'):
+            people_uuid = uuid4()
         else:
-            people_uuid = uis_get_uuid_from_oidc_claim_sub(person.get('uid'))
+            people_uuid = ''
         command = """
         INSERT INTO fabric_people(uuid, oidc_claim_sub, name, email, eppn, is_facility_operator, is_project_lead)
         VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', FALSE, FALSE)
@@ -332,18 +331,6 @@ def load_people_data():
     if str(config['mock']['data']).lower() == 'true':
         update_project_data()
     load_relationship_data(people)
-
-
-def uis_get_uuid_from_oidc_claim_sub(oidc_claim_sub):
-    co_api_username = config['comanage-api']['api_key']
-    co_api_key = config['comanage-api']['api_key']
-    # TODO: get uuid from uis/uuid/oidc_claim_sub
-    # check if user is the default-user
-    if oidc_claim_sub == config['default-user']['oidc_claim_sub']:
-        return config['default-user']['uuid']
-    # otherwise call uis to get uuid from oidc_claim_sub
-    print(oidc_claim_sub)
-    return ''
 
 
 if __name__ == '__main__':

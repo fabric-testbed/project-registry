@@ -7,18 +7,18 @@ from pytz import timezone
 from swagger_server.models.project_long import ProjectLong  # noqa: E501
 from swagger_server.models.project_short import ProjectShort  # noqa: E501
 
+from . import DEFAULT_USER_UUID, DEFAULT_USER_NAME, DEFAULT_USER_EMAIL, MOCK_DATA
 from .people_controller import people_uuid_get
-from .utils import dict_from_query, run_sql_commands
-from ..external_apis.comanage_api import comanage_projects_add_members_put, comanage_projects_add_owners_put, \
-    comanage_projects_remove_members_put, comanage_projects_remove_owners_put
+from .utils import dict_from_query, run_sql_commands, resolve_empty_people_uuid
 from ..authorization.people import get_api_person
 from ..authorization.projects import filter_projects_get, authorize_projects_add_members_put, \
     authorize_projects_add_owners_put, authorize_projects_add_tags_put, authorize_projects_create_post, \
     authorize_projects_delete_delete, authorize_projects_get, authorize_projects_remove_members_put, \
     authorize_projects_remove_owners_put, authorize_projects_remove_tags_put, authorize_projects_update_put, \
     authorize_projects_uuid_get, DEFAULT_USER_UUID
+from ..external_apis.comanage_api import comanage_projects_add_members_put, comanage_projects_add_owners_put, \
+    comanage_projects_remove_members_put, comanage_projects_remove_owners_put
 
-from . import DEFAULT_USER_UUID, DEFAULT_USER_NAME, DEFAULT_USER_EMAIL, MOCK_DATA, MOCK_COMANAGE_API, MOCK_UIS_API
 
 def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     """add members to an existing project
@@ -48,6 +48,9 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     if not authorize_projects_add_members_put(request.headers, uuid, created_by):
         return 'Authorization information is missing or invalid: /projects/add_members', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+
+    # resolve any missing people uuids
+    resolve_empty_people_uuid()
 
     if project_members:
         if not comanage_projects_add_members_put(uuid, project_members):
@@ -125,6 +128,9 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
     if not authorize_projects_add_owners_put(request.headers, created_by):
         return 'Authorization information is missing or invalid: /projects/add_owners', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+
+    # resolve any missing people uuids
+    resolve_empty_people_uuid()
 
     if project_owners:
         if not comanage_projects_add_owners_put(uuid, project_owners):
@@ -268,6 +274,9 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     if not authorize_projects_create_post(request.headers):
         return 'Authorization information is missing or invalid: /projects/create', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+
+    # resolve any missing people uuids
+    resolve_empty_people_uuid()
 
     # get identity for created_by
     api_person = get_api_person(request.headers.get('X-Vouch-Idp-Idtoken'))

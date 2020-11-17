@@ -2,11 +2,10 @@ from flask import request
 from swagger_server.models.people_long import PeopleLong  # noqa: E501
 from swagger_server.models.people_short import PeopleShort  # noqa: E501
 
-from .utils import dict_from_query
+from . import DEFAULT_USER_UUID, MOCK_DATA
+from .utils import dict_from_query, resolve_empty_people_uuid
 from ..authorization.people import authorize_people_get, authorize_people_oidc_claim_sub_get, \
     authorize_people_uuid_get
-
-from . import DEFAULT_USER_UUID, MOCK_DATA, MOCK_COMANAGE_API, MOCK_UIS_API
 
 
 def people_get(person_name=None):  # noqa: E501
@@ -23,6 +22,9 @@ def people_get(person_name=None):  # noqa: E501
     if not authorize_people_get(request.headers):
         return 'Authorization information is missing or invalid: /people', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+
+    # resolve any missing people uuids
+    resolve_empty_people_uuid()
 
     # response as array of PeopleShort()
     response = []
@@ -71,6 +73,9 @@ def people_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
 
     :rtype: List[PeopleLong]
     """
+    # resolve any missing people uuids
+    resolve_empty_people_uuid()
+
     # get people uuid
     sql = """
     SELECT uuid from fabric_people WHERE oidc_claim_sub = '{0}'
@@ -99,6 +104,9 @@ def people_uuid_get(uuid):  # noqa: E501
 
     :rtype: PeopleLong
     """
+    # resolve any missing people uuids
+    resolve_empty_people_uuid()
+
     # response as PeopleLong()
     response = PeopleLong()
 

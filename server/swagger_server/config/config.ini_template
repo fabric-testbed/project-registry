@@ -50,6 +50,19 @@ password = registry
 port = 5432
 user = postgres
 
+; uis - User Information Service settings
+[uis]
+; Cookie name
+cookie_name = fabric-service
+; Cookie domain
+cookie_domain = cookie_domain
+; API URL
+api_url = api_url
+; API port
+api_port = 443
+; SSL verify - Verify SSL certificate (set to False for self-signed certs)
+ssl_verify = False
+
 ; uwsgi - uWSGI settings
 [uwsgi]
 ; documentation: http://uwsgi-docs.readthedocs.io/en/latest/Options.html
