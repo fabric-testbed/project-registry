@@ -7,6 +7,7 @@ _set_docker_uwsgi_ini() {
     echo ";     documentation: http://uwsgi-docs.readthedocs.io/en/latest/Options.html" >> docker_uwsgi.ini
     echo ";     do not check this file into the repository" >> docker_uwsgi.ini
     echo ";" >> docker_uwsgi.ini
+    echo "buffer-size = 32768" >> docker_uwsgi.ini
     echo "enable-threads = true" >> docker_uwsgi.ini
     echo "protocol = http" >> docker_uwsgi.ini
     echo "processes = 8" >> docker_uwsgi.ini

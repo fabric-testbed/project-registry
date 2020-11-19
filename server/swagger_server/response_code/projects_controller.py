@@ -236,7 +236,7 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
                 VALUES ({0}, '{1}')
                 ON CONFLICT ON CONSTRAINT tags_duplicate
                 DO NOTHING
-                """.format(project_id, tag)
+                """.format(project_id, tag.replace("'", "''"))
                 sql_list.append(sql)
             else:
                 return 'Bad Request, Tag not specified or is otherwise blank', 400, \
@@ -291,7 +291,8 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     sql = """
     INSERT INTO fabric_projects(uuid, name, description, facility, created_by, created_time)
     VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}');
-    """.format(str(project_uuid), name, description, facility, created_by, created_time)
+    """.format(str(project_uuid), name.replace("'", "''"), description.replace("'", "''"), facility.replace("'", "''"),
+               created_by, created_time)
     run_sql_commands(sql)
 
     sql_list = []
@@ -305,14 +306,6 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     except IndexError:
         projects_delete_delete(str(project_uuid))
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
-
-    if facility:
-        sql = """
-        UPDATE fabric_projects
-        SET facility = '{0}'
-        WHERE fabric_projects.id = {1};
-        """.format(facility, project_id)
-        sql_list.append(sql)
 
     # project owners
     if project_owners:
@@ -431,7 +424,7 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
                 VALUES ({0}, '{1}')
                 ON CONFLICT ON CONSTRAINT tags_duplicate
                 DO NOTHING
-                """.format(project_id, tag)
+                """.format(project_id, tag.replace("'", "''"))
                 sql_list.append(sql)
             else:
                 projects_delete_delete(str(project_uuid))
@@ -837,21 +830,21 @@ def projects_update_put(uuid, name=None, description=None, facility=None):  # no
         UPDATE fabric_projects
         SET name = '{0}'
         WHERE fabric_projects.id = {1};
-        """.format(name, project_id)
+        """.format(name.replace("'", "''"), project_id)
         sql_list.append(sql)
     if description:
         sql = """
         UPDATE fabric_projects
         SET description = '{0}'
         WHERE fabric_projects.id = {1};
-        """.format(description, project_id)
+        """.format(description.replace("'", "''"), project_id)
         sql_list.append(sql)
     if facility:
         sql = """
         UPDATE fabric_projects
         SET facility = '{0}'
         WHERE fabric_projects.id = {1};
-        """.format(facility, project_id)
+        """.format(facility.replace("'", "''"), project_id)
         sql_list.append(sql)
 
     commands = tuple(i for i in sql_list)

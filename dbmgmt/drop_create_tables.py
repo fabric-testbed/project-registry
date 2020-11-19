@@ -28,7 +28,7 @@ def create_tables():
             id SERIAL PRIMARY KEY,
             uuid VARCHAR(36) NOT NULL,
             name VARCHAR(255) NOT NULL,
-            description VARCHAR(255) NOT NULL,
+            description VARCHAR(2083) NOT NULL,
             facility VARCHAR(255) NOT NULL,
             created_by VARCHAR(36) NOT NULL,
             created_time VARCHAR(255) NOT NULL,
