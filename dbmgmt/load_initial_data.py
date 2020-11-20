@@ -313,7 +313,7 @@ def load_people_data():
     for person in people:
         if person.get('uid') == config['default-user']['oidc_claim_sub']:
             people_uuid = config['default-user']['uuid']
-        elif config.getboolean('mock', 'data') or config.getboolean('mock', 'uis_api'):
+        elif config.getboolean('mock', 'uis_api'):
             people_uuid = uuid4()
         else:
             people_uuid = ''
