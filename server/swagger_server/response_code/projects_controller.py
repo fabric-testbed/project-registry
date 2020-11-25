@@ -247,7 +247,7 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
-    if not authorize_projects_add_tags_put(request.headers, uuid, created_by):
+    if not authorize_projects_add_tags_put(request.headers):
         return 'Authorization information is missing or invalid: /projects/add_tags', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
 
@@ -295,7 +295,7 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     """
     # check authorization
     if tags:
-        if not authorize_projects_add_tags_put(request.headers, uuid, created_by):
+        if not authorize_projects_add_tags_put(request.headers):
             return 'Authorization information is missing or invalid: /projects/create with tags', 401, \
                    {'X-Error': 'Authorization information is missing or invalid'}
 

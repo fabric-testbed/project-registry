@@ -65,7 +65,7 @@ def filter_projects_add_owners_put(headers, response):
     return response
 
 
-def authorize_projects_add_tags_put(headers, uuid, created_by):
+def authorize_projects_add_tags_put(headers):
     # get api_user
     api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
 
