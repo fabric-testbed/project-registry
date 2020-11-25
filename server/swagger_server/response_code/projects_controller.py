@@ -335,7 +335,7 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
         projects_delete_delete(str(project_uuid))
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
-    if not comanage_projects_create_post(project_uuid):
+    if not comanage_projects_create_post(project_uuid, name):
         return 'Unable to create project: {0}'.format(str(uuid)), 501, \
                {'X-Error': 'Unable to create project in COmanage'}
 
@@ -350,13 +350,13 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
                    {'X-Error': 'Unable to add owners in COmanage'}
 
         # get role_name and cou_id for -po and -pm
-        role_name_po = str(uuid) + '-po'
+        role_name_po = str(project_uuid) + '-po'
         sql = """
         SELECT id from comanage_cous WHERE name = '{0}';
         """.format(role_name_po)
         cou_id_po = dict_from_query(sql)[0].get('id')
 
-        role_name_pm = str(uuid) + '-pm'
+        role_name_pm = str(project_uuid) + '-pm'
         sql = """
         SELECT id from comanage_cous WHERE name = '{0}';
         """.format(role_name_pm)
@@ -424,7 +424,7 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
                    {'X-Error': 'Unable to add members in COmanage'}
 
         # get role_name and cou_id for -pm
-        role_name_pm = str(uuid) + '-pm'
+        role_name_pm = str(project_uuid) + '-pm'
         sql = """
         SELECT id from comanage_cous WHERE name = '{0}';
         """.format(role_name_pm)
