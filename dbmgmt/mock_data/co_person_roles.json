@@ -1,0 +1,383 @@
+[
+  {
+    "CoPersonRoles": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/00000002",
+        "Affiliation": "member",
+        "CouId": "129",
+        "Created": "2020-01-31 20:55:35",
+        "Deleted": false,
+        "Id": "1252",
+        "Modified": "2020-03-02 16:50:46",
+        "O": "",
+        "Ou": "",
+        "Person": {
+          "Id": "1",
+          "Type": "CO"
+        },
+        "Revision": "6",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000001",
+        "Affiliation": "member",
+        "CouId": "140",
+        "Created": "2020-05-12 20:56:03",
+        "Deleted": false,
+        "Id": "1524",
+        "Modified": "2020-05-12 20:56:08",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "1",
+          "Type": "CO"
+        },
+        "Revision": "1",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000001",
+        "Affiliation": "member",
+        "CouId": "163",
+        "Created": "2020-08-29 00:23:20",
+        "Deleted": false,
+        "Id": "1601",
+        "Modified": "2020-08-29 00:23:23",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "1",
+          "Type": "CO"
+        },
+        "Revision": "1",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000001",
+        "Affiliation": "member",
+        "CouId": "164",
+        "Created": "2020-08-29 00:23:34",
+        "Deleted": false,
+        "Id": "1603",
+        "Modified": "2020-08-29 00:23:37",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "1",
+          "Type": "CO"
+        },
+        "Revision": "1",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000001",
+        "Affiliation": "member",
+        "CouId": "177",
+        "Created": "2020-11-21 23:52:28",
+        "Deleted": false,
+        "Id": "1728",
+        "Modified": "2020-11-21 23:52:31",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "1",
+          "Type": "CO"
+        },
+        "Revision": "1",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000001",
+        "Affiliation": "member",
+        "CouId": "178",
+        "Created": "2020-11-21 23:52:41",
+        "Deleted": false,
+        "Id": "1730",
+        "Modified": "2020-11-21 23:52:45",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "1",
+          "Type": "CO"
+        },
+        "Revision": "1",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "CoPersonRoles",
+    "Version": "1.0"
+  },
+  {
+    "CoPersonRoles": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/00000002",
+        "Affiliation": "member",
+        "Created": "2020-02-03 17:37:52",
+        "Deleted": false,
+        "Id": "1262",
+        "Modified": "2020-02-03 17:41:25",
+        "Person": {
+          "Id": "2",
+          "Type": "CO"
+        },
+        "Revision": "5",
+        "Status": "Active",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/00000002",
+        "Affiliation": "member",
+        "CouId": "129",
+        "Created": "2020-03-02 16:49:32",
+        "Deleted": false,
+        "Id": "1464",
+        "Modified": "2020-03-02 16:49:32",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "2",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "CoPersonRoles",
+    "Version": "1.0"
+  },
+  {
+    "CoPersonRoles": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/00000003",
+        "Affiliation": "member",
+        "Created": "2020-02-11 13:49:22",
+        "Deleted": false,
+        "Id": "1364",
+        "Modified": "2020-02-11 16:12:00",
+        "Person": {
+          "Id": "3",
+          "Type": "CO"
+        },
+        "Revision": "5",
+        "Status": "Active",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/00000002",
+        "Affiliation": "member",
+        "CouId": "129",
+        "Created": "2020-03-02 16:51:37",
+        "Deleted": false,
+        "Id": "1466",
+        "Modified": "2020-03-02 16:51:37",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "3",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000001",
+        "Affiliation": "member",
+        "CouId": "164",
+        "Created": "2020-09-04 15:14:50",
+        "Deleted": false,
+        "Id": "1617",
+        "Modified": "2020-09-04 15:14:53",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "3",
+          "Type": "CO"
+        },
+        "Revision": "1",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "CoPersonRoles",
+    "Version": "1.0"
+  },
+  {
+    "CoPersonRoles": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/00000004",
+        "Affiliation": "member",
+        "Created": "2020-09-02 18:50:40",
+        "Deleted": false,
+        "Id": "1605",
+        "Modified": "2020-09-02 19:19:15",
+        "Person": {
+          "Id": "4",
+          "Type": "CO"
+        },
+        "Revision": "5",
+        "Status": "Active",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000001",
+        "Affiliation": "member",
+        "CouId": "164",
+        "Created": "2020-11-16 22:07:49",
+        "Deleted": false,
+        "Id": "1709",
+        "Modified": "2020-11-24 15:30:57",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "4",
+          "Type": "CO"
+        },
+        "Revision": "2",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "CoPersonRoles",
+    "Version": "1.0"
+  },
+  {
+    "CoPersonRoles": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000005",
+        "Affiliation": "member",
+        "Created": "2020-09-11 20:43:09",
+        "Deleted": false,
+        "Id": "1631",
+        "Modified": "2020-09-11 20:44:29",
+        "Person": {
+          "Id": "5",
+          "Type": "CO"
+        },
+        "Revision": "3",
+        "Status": "Duplicate",
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "CoPersonRoles",
+    "Version": "1.0"
+  },
+  {
+    "CoPersonRoles": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/00000006",
+        "Affiliation": "member",
+        "Created": "2020-10-02 15:38:37",
+        "Deleted": false,
+        "Id": "1661",
+        "Modified": "2020-10-02 15:43:09",
+        "Person": {
+          "Id": "6",
+          "Type": "CO"
+        },
+        "Revision": "5",
+        "Status": "Active",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/00000006",
+        "Affiliation": "member",
+        "CouId": "168",
+        "Created": "2020-10-16 20:47:49",
+        "Deleted": false,
+        "Id": "1691",
+        "Modified": "2020-10-16 20:47:49",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "6",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "CoPersonRoles",
+    "Version": "1.0"
+  },
+  {
+    "CoPersonRoles": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/00000007",
+        "Affiliation": "member",
+        "Created": "2020-10-19 19:36:35",
+        "Deleted": false,
+        "Id": "1692",
+        "Modified": "2020-10-19 19:36:39",
+        "Person": {
+          "Id": "7",
+          "Type": "CO"
+        },
+        "Revision": "1",
+        "Status": "PendingConfirmation",
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "CoPersonRoles",
+    "Version": "1.0"
+  },
+  {
+    "CoPersonRoles": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/000008",
+        "Affiliation": "member",
+        "Created": "2020-11-11 16:53:00",
+        "Deleted": false,
+        "Id": "1701",
+        "Modified": "2020-11-11 16:57:23",
+        "Person": {
+          "Id": "8",
+          "Type": "CO"
+        },
+        "Revision": "5",
+        "Status": "Active",
+        "Version": "1.0"
+      },
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000001",
+        "Affiliation": "member",
+        "CouId": "164",
+        "Created": "2020-11-11 19:33:45",
+        "Deleted": false,
+        "Id": "1707",
+        "Modified": "2020-11-11 19:33:48",
+        "O": "Fabric",
+        "Ou": "",
+        "Person": {
+          "Id": "8",
+          "Type": "CO"
+        },
+        "Revision": "1",
+        "Status": "Active",
+        "Title": "",
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "CoPersonRoles",
+    "Version": "1.0"
+  }
+]

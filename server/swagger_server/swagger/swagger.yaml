@@ -695,8 +695,6 @@ components:
           type: string
         email:
           type: string
-        eppn:
-          type: string
         roles:
           type: array
           items:
@@ -725,7 +723,6 @@ components:
             name: name
             uuid: uuid
             email: email
-        eppn: eppn
         roles:
         - roles
         - roles

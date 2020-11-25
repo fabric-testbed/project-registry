@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
-from swagger_server import Session
 import psycopg2
-import requests
-from flask import request
-from ..external_apis.uis_api import uis_get_uuid_from_oidc_claim_sub
-from . import COOKIE_NAME, COOKIE_DOMAIN
+from swagger_server import Session
+
+from ..uis_api.uis_api import uis_get_uuid_from_oidc_claim_sub
 
 
 def dict_from_query(query=None):
@@ -52,20 +49,11 @@ def resolve_empty_people_uuid():
     """
     dfq = dict_from_query(sql)
     if dfq:
-        s = requests.Session()
-        cookie_value = request.cookies.get(COOKIE_NAME)
-        cookie_obj = requests.cookies.create_cookie(
-            domain=COOKIE_DOMAIN,
-            name=COOKIE_NAME,
-            value=cookie_value
-        )
-        s.cookies.set_cookie(cookie_obj)
-        cookies = s.cookies
         sql_list = []
         for person in dfq:
             people_id = person.get('id')
             oidc_claim_sub = person.get('oidc_claim_sub')
-            uuid = uis_get_uuid_from_oidc_claim_sub(oidc_claim_sub, cookies)
+            uuid = uis_get_uuid_from_oidc_claim_sub(oidc_claim_sub)
 
             sql = """
             UPDATE fabric_people

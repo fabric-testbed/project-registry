@@ -31,7 +31,7 @@ pip install -r requirements.txt
 # create database tables and load
 cd ../dbmgmt
 python drop_create_tables.py
-python load_initial_data.py
+python update_tables.py
 
 # run production server using uwsgi
 cd ../server

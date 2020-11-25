@@ -15,7 +15,7 @@ class PeopleLong(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, uuid: str=None, oidc_claim_sub: str=None, name: str=None, email: str=None, eppn: str=None, roles: List[str]=None, projects: List[ProjectShort]=None):  # noqa: E501
+    def __init__(self, uuid: str=None, oidc_claim_sub: str=None, name: str=None, email: str=None, roles: List[str]=None, projects: List[ProjectShort]=None):  # noqa: E501
         """PeopleLong - a model defined in Swagger
 
         :param uuid: The uuid of this PeopleLong.  # noqa: E501
@@ -26,8 +26,6 @@ class PeopleLong(Model):
         :type name: str
         :param email: The email of this PeopleLong.  # noqa: E501
         :type email: str
-        :param eppn: The eppn of this PeopleLong.  # noqa: E501
-        :type eppn: str
         :param roles: The roles of this PeopleLong.  # noqa: E501
         :type roles: List[str]
         :param projects: The projects of this PeopleLong.  # noqa: E501
@@ -38,7 +36,6 @@ class PeopleLong(Model):
             'oidc_claim_sub': str,
             'name': str,
             'email': str,
-            'eppn': str,
             'roles': List[str],
             'projects': List[ProjectShort]
         }
@@ -48,7 +45,6 @@ class PeopleLong(Model):
             'oidc_claim_sub': 'oidc_claim_sub',
             'name': 'name',
             'email': 'email',
-            'eppn': 'eppn',
             'roles': 'roles',
             'projects': 'projects'
         }
@@ -56,7 +52,6 @@ class PeopleLong(Model):
         self._oidc_claim_sub = oidc_claim_sub
         self._name = name
         self._email = email
-        self._eppn = eppn
         self._roles = roles
         self._projects = projects
 
@@ -154,27 +149,6 @@ class PeopleLong(Model):
         """
 
         self._email = email
-
-    @property
-    def eppn(self) -> str:
-        """Gets the eppn of this PeopleLong.
-
-
-        :return: The eppn of this PeopleLong.
-        :rtype: str
-        """
-        return self._eppn
-
-    @eppn.setter
-    def eppn(self, eppn: str):
-        """Sets the eppn of this PeopleLong.
-
-
-        :param eppn: The eppn of this PeopleLong.
-        :type eppn: str
-        """
-
-        self._eppn = eppn
 
     @property
     def roles(self) -> List[str]:

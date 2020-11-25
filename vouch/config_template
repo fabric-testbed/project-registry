@@ -19,7 +19,7 @@ vouch:
     # Setting publicAccess: true will accept all requests, even without a valid jwt/cookie.  - VOUCH_PUBLICACCESS
     # If the user is logged in, the cookie will be validated and the user header will be set.
     # You will need to direct people to the Vouch Proxy login page from your application.
-    publicAccess: true
+    publicAccess: false
 
     jwt:
         # secret - VOUCH_JWT_SECRET

@@ -37,10 +37,10 @@ done
 echo ""
 
 # create the database tables and load initial data
-create_drop_tables='source ./.venv/bin/activate && cd /dbmgmt/ && python drop_create_tables.py'
-load_initial_data='source ./.venv/bin/activate && cd /dbmgmt/ && python load_initial_data.py'
-docker exec pr-api-server /bin/bash -c "${create_drop_tables}"
-docker exec pr-api-server /bin/bash -c "${load_initial_data}"
+drop_create_tables='source ./.venv/bin/activate && cd /dbmgmt/ && python drop_create_tables.py'
+update_tables='source ./.venv/bin/activate && cd /dbmgmt/ && python update_tables.py'
+docker exec pr-api-server /bin/bash -c "${drop_create_tables}"
+docker exec pr-api-server /bin/bash -c "${update_tables}"
 
 # provide user with deployment information
 echo ""

@@ -1,12 +1,23 @@
-from . import FACILITY_OPERATORS, PROJECT_LEADS, DEFAULT_USER_UUID, MOCK_DATA
+from configparser import ConfigParser
+
 from .auth_utils import get_api_person
+
+config = ConfigParser()
+config.read('swagger_server/config/config.ini')
+
+# set authorization level COUs
+FACILITY_OPERATORS = config.get('fabric-cou', 'facility_operators')
+PROJECT_LEADS = config.get('fabric-cou', 'project_leads')
+
+# set default user uuid flag
+DEFAULT_USER_UUID = config.get('default-user', 'uuid')
 
 
 def authorize_projects_add_members_put(headers, uuid, created_by):
     # get api_user
     api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
     # set project owners COU value
-    project_owners_cou = 'CO:COU:' + str(uuid) + '-po:members:active'
+    project_owners_cou = str(uuid) + '-po'
 
     # project creator - allowed to add members to projects they created
     if created_by == api_person.uuid:
@@ -57,23 +68,7 @@ def filter_projects_add_owners_put(headers, response):
 def authorize_projects_add_tags_put(headers, uuid, created_by):
     # get api_user
     api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
-    # set project owners COU value
-    project_owners_cou = 'CO:COU:' + str(uuid) + '-po:members:active'
-    # set project members COU value
-    project_members_cou = 'CO:COU:' + str(uuid) + '-pm:members:active'
 
-    # project creator - allowed to add tags to projects they created
-    if created_by == api_person.uuid:
-        print('[INFO] created_by')
-        return True
-    # project members - allowed to add tags to projects they are members of
-    if project_members_cou in api_person.roles:
-        print('[INFO] ' + project_members_cou)
-        return True
-    # project owners - allowed to add tags to projects they are owners of
-    if project_owners_cou in api_person.roles:
-        print('[INFO] ' + project_owners_cou)
-        return True
     # facility operators - allowed to perform all actions within project-registry
     if FACILITY_OPERATORS in api_person.roles:
         print('[INFO] ' + FACILITY_OPERATORS)
@@ -138,7 +133,7 @@ def filter_projects_delete_delete(headers, response):
 def authorize_projects_get(headers):
     # TODO: check if any authorization is required here at all
     # allow mock data to pass
-    if str(MOCK_DATA).lower() == 'true':
+    if config.getboolean('mock', 'data'):
         return True
     # get api_user
     api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
@@ -158,7 +153,7 @@ def authorize_projects_remove_members_put(headers, uuid, created_by):
     # get api_user
     api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
     # set project owners COU value
-    project_owners_cou = 'CO:COU:' + str(uuid) + '-po:members:active'
+    project_owners_cou = str(uuid) + '-po'
 
     # project creator - allowed to remove members to projects they created
     if created_by == api_person.uuid:
@@ -209,23 +204,7 @@ def filter_projects_remove_owners_put(headers, response):
 def authorize_projects_remove_tags_put(headers, uuid, created_by):
     # get api_user
     api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
-    # set project owners COU value
-    project_owners_cou = 'CO:COU:' + str(uuid) + '-po:members:active'
-    # set project members COU value
-    project_members_cou = 'CO:COU:' + str(uuid) + '-pm:members:active'
 
-    # project creator - allowed to remove tags to projects they created
-    if created_by == api_person.uuid:
-        print('[INFO] created_by')
-        return True
-    # project members - allowed to remove tags to projects they are members of
-    if project_members_cou in api_person.roles:
-        print('[INFO] ' + project_members_cou)
-        return True
-    # project owners - allowed to remove tags to projects they are owners of
-    if project_owners_cou in api_person.roles:
-        print('[INFO] ' + project_owners_cou)
-        return True
     # facility operators - allowed to perform all actions within project-registry
     if FACILITY_OPERATORS in api_person.roles:
         print('[INFO] ' + FACILITY_OPERATORS)
@@ -268,9 +247,9 @@ def authorize_projects_uuid_get(headers, uuid, created_by):
     # get api_user
     api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
     # set project owners COU value
-    project_owners_cou = 'CO:COU:' + str(uuid) + '-po:members:active'
+    project_owners_cou = str(uuid) + '-po'
     # set project members COU value
-    project_members_cou = 'CO:COU:' + str(uuid) + '-pm:members:active'
+    project_members_cou = str(uuid) + '-pm'
 
     # project creator - allowed to get details about projects they created
     if created_by == api_person.uuid:

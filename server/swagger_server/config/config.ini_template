@@ -1,30 +1,27 @@
-; comanage-api - COmanage API username and key
+; comanage-api - API Username / Key for COmanage API
 [comanage-api]
-api_key = api_key
-api_username = api_username
+api_key = co_api_key
+api_username = co_api_username
+api_coid = co_coid
+empty_parent_flag = -1
 
-; default-user - Default user settings for when user credentials are not provided
+; default-user - Default user settings for when user credentials are not found in the header
 [default-user]
+co_person_id = 0
+co_status = Active
 email = anonymous@fabric-testbed.net
-eppn = anonymous@fabric-testbed.net
 name = anonymous user
 oidc_claim_sub = http://cilogon.org/serverA/users/000000
 ; roles must be space delimited if providing more than one
-roles = CO:COU:fabric-active-users:members:active
+; options = fabric-active-users, project-leads, facility-operators
+roles = fabric-active-users
 uuid = 00000000-0000-0000-0000-000000000000
 
-; fabric-cou - COmanaage COUs for authorization checks (non-project based)
+; cou - COmanaage non-project COUs for authorization checks
 [fabric-cou]
-fabric_active_users = CO:COU:fabric-active-users:members:active
-facility_operators = CO:COU:facility-operators:members:active
-project_leads = CO:COU:project-leads:members:active
-
-; ldap - COmanage LDAP settings provided by CILogon staff
-[ldap]
-host = host
-password = password
-search_base = search_base
-user = user
+fabric_active_users = fabric-active-users
+facility_operators = facility-operators
+project_leads = project-leads
 
 ; mock - Mock data flags
 [mock]
@@ -32,10 +29,12 @@ user = user
 comanage_api = True
 ; True = use mock data instead of data found in COmanage
 data = True
-; mock_people
-mock_people_file = mock_people.json
-; mock_cous
-mock_cou_file = mock_cou.json
+; mock data files - representative of COmanage API JSON response files
+mock_co_people = mock_data/co_people.json
+mock_co_person_roles = mock_data/co_person_roles.json
+mock_cous = mock_data/cous.json
+mock_email_addresses = mock_data/email_addresses.json
+mock_names = mock_data/names.json
 ; True = use mock api calls to User Information Service (generates UUID values for users)
 uis_api = True
 
@@ -55,17 +54,19 @@ user = postgres
 ; Cookie name
 cookie_name = fabric-service
 ; Cookie domain
-cookie_domain = cookie_domain
+cookie_domain = uis_cookie_domain
 ; API URL
-api_url = api_url
+api_url = uis_api_url
 ; API port
-api_port = 443
+api_port = uis_port
 ; SSL verify - Verify SSL certificate (set to False for self-signed certs)
 ssl_verify = False
 
 ; uwsgi - uWSGI settings
 [uwsgi]
 ; documentation: http://uwsgi-docs.readthedocs.io/en/latest/Options.html
+; http request buffer size (default is 4096)
+buffer-size = 32768
 ; chdir to specified directory before apps loading
 chdir = ./
 ; chmod-socket ... with appropriate permissions - may be needed **socket**

@@ -9,9 +9,9 @@ from sqlalchemy.orm import sessionmaker
 config = ConfigParser()
 config.read('../server/swagger_server/config/config.ini')
 
-POSTGRES_ENGINE = 'postgres://' + config['postgres']['user'] + ':' + config['postgres']['password'] \
-                  + '@' + config['postgres']['host'] + ':' + config['postgres']['port'] \
-                  + '/' + config['postgres']['database']
+POSTGRES_ENGINE = 'postgres://' + config.get('postgres', 'user') + ':' + config.get('postgres', 'password') \
+                  + '@' + config.get('postgres', 'host') + ':' + config.get('postgres', 'port') \
+                  + '/' + config.get('postgres', 'database')
 
 engine = create_engine(POSTGRES_ENGINE)
 Session = sessionmaker(bind=engine)
@@ -43,12 +43,12 @@ def create_tables():
             id SERIAL PRIMARY KEY,
             uuid VARCHAR(36) NOT NULL,
             oidc_claim_sub VARCHAR(255) NOT NULL,
+            co_person_id INTEGER NOT NULL,
+            co_id INTEGER NOT NULL,
+            co_status VARCHAR(255) NOT NULL,
             name VARCHAR(255) NOT NULL,
             email VARCHAR(255) NOT NULL,
-            eppn VARCHAR(255) NOT NULL,
-            is_facility_operator BOOLEAN NOT NULL,
-            is_project_lead BOOLEAN NOT NULL,
-            CONSTRAINT cilogon_uid UNIQUE (oidc_claim_sub)
+            CONSTRAINT actor_identifier_duplicate UNIQUE (oidc_claim_sub)
         )
         """,
         """
@@ -100,18 +100,43 @@ def create_tables():
         )
         """,
         """
-        DROP TABLE IF EXISTS roles CASCADE 
+        DROP TABLE IF EXISTS comanage_cous CASCADE 
         """,
         """
-        CREATE TABLE roles (
+        CREATE TABLE comanage_cous (
+            id SERIAL PRIMARY KEY,
+            version VARCHAR(255) NOT NULL,
+            cou_id INTEGER NOT NULL,
+            co_id INTEGER NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            description VARCHAR(255) NOT NULL,
+            parent_id INTEGER,
+            lft INTEGER,
+            rght INTEGER,
+            created_date VARCHAR(255) NOT NULL,
+            modified_date VARCHAR(255) NOT NULL,
+            revision INTEGER NOT NULL,
+            deleted VARCHAR(255) NOT NULL,
+            actor_identifier VARCHAR(255) NOT NULL,
+            CONSTRAINT cou_id_duplicate UNIQUE (cou_id)
+        )
+        """,
+        """
+        DROP TABLE IF EXISTS fabric_roles CASCADE 
+        """,
+        """
+        CREATE TABLE fabric_roles (
             id SERIAL PRIMARY KEY,
             people_id int NOT NULL,
-            role VARCHAR(255) NOT NULL,
+            cou_id int NOT NULL,
+            role_name VARCHAR(255) NOT NULL,
             FOREIGN KEY (people_id) REFERENCES fabric_people(id) ON UPDATE CASCADE,
-            CONSTRAINT roles_duplicate UNIQUE (people_id, role)  
+            FOREIGN KEY (cou_id) REFERENCES comanage_cous(id) ON UPDATE CASCADE,
+            CONSTRAINT fabric_role_duplicate UNIQUE (people_id, cou_id)  
         )
         """
     )
+
     session = Session()
     try:
         # create table one by one
