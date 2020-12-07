@@ -65,3 +65,95 @@ def resolve_empty_people_uuid():
         commands = tuple(i for i in sql_list)
         print("[INFO] attempt to update people uuid data")
         run_sql_commands(commands)
+
+
+def filter_out_preexisting_project_members(project_members, project_id):
+    new_project_members = []
+    sql = """
+    SELECT fabric_people.uuid
+    FROM fabric_people INNER JOIN project_members ON fabric_people.id = project_members.people_id
+    WHERE project_members.projects_id = {0};
+    """.format(project_id)
+    dfq = dict_from_query(sql)
+    try:
+        existing_project_members = dfq[0].get('uuid')
+    except IndexError or TypeError:
+        existing_project_members = []
+
+    for member in project_members:
+        if member not in existing_project_members:
+            new_project_members.append(member)
+        else:
+            print('[INFO] Exclude {0} from new_project_members - already in the group'.format(member))
+
+    return new_project_members
+
+
+def filter_out_preexisting_project_owners(project_owners, project_id):
+    new_project_owners = []
+    sql = """
+        SELECT fabric_people.uuid
+        FROM fabric_people INNER JOIN project_owners ON fabric_people.id = project_owners.people_id
+        WHERE project_owners.projects_id = {0};
+        """.format(project_id)
+    dfq = dict_from_query(sql)
+    try:
+        existing_project_owners = dfq[0].get('uuid')
+    except IndexError or TypeError:
+        existing_project_owners = []
+
+    for member in project_owners:
+        if member not in existing_project_owners:
+            new_project_owners.append(member)
+        else:
+            print('[INFO] Exclude {0} from new_project_owners - already in the group'.format(member))
+
+    return new_project_owners
+
+
+def filter_out_nonexisting_project_members(project_members, project_id):
+    remove_project_members = []
+    sql = """
+    SELECT fabric_people.uuid
+    FROM fabric_people INNER JOIN project_members ON fabric_people.id = project_members.people_id
+    WHERE project_members.projects_id = {0};
+    """.format(project_id)
+    dfq = dict_from_query(sql)
+    existing_project_members = []
+    try:
+        for project_member in dfq:
+            existing_project_members.append(project_member.get('uuid'))
+    except IndexError or TypeError as error:
+        print(error)
+
+    for member in project_members:
+        if member in existing_project_members:
+            remove_project_members.append(member)
+        else:
+            print('[INFO] Exclude {0} from remove_project_members - not found in the group'.format(member))
+
+    return remove_project_members
+
+
+def filter_out_nonexisting_project_owners(project_owners, project_id):
+    remove_project_owners = []
+    sql = """
+    SELECT fabric_people.uuid
+    FROM fabric_people INNER JOIN project_owners ON fabric_people.id = project_owners.people_id
+    WHERE project_owners.projects_id = {0};
+    """.format(project_id)
+    dfq = dict_from_query(sql)
+    existing_project_owners = []
+    try:
+        for project_owner in dfq:
+            existing_project_owners.append(project_owner.get('uuid'))
+    except IndexError or TypeError as error:
+        print(error)
+
+    for member in project_owners:
+        if member in existing_project_owners:
+            remove_project_owners.append(member)
+        else:
+            print('[INFO] Exclude {0} from remove_project_owners - not found in the group'.format(member))
+
+    return remove_project_owners

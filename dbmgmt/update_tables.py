@@ -11,6 +11,8 @@ from drop_create_tables import Session
 from pytz import timezone
 from requests.auth import HTTPBasicAuth
 
+from pprint import pprint
+
 config = ConfigParser()
 config.read('../server/swagger_server/config/config.ini')
 
@@ -26,6 +28,7 @@ MOCK_CO_PERSON_ROLES_FILE = config.get('mock', 'mock_co_person_roles')
 MOCK_COUS_FILE = config.get('mock', 'mock_cous')
 MOCK_EMAIL_ADDRESSES_FILE = config.get('mock', 'mock_email_addresses')
 MOCK_NAMES_FILE = config.get('mock', 'mock_names')
+MOCK_ROLE_ID_FLAG = config.get('mock', 'mock_role_id_flag')
 
 # Timezone
 TIMEZONE = 'America/New_York'
@@ -33,9 +36,10 @@ TIMEZONE = 'America/New_York'
 # default values
 DEFAULT_NAME = 'INSERT_PROJECT_NAME'
 DEFAULT_DESCRIPTION = 'INSERT_PROJECT_DESCRIPTION'
-DEFAULT_FACILITY = 'INSERT_PROJECT_FACILITY'
+DEFAULT_FACILITY = 'FABRIC'
 DEFAULT_CREATED_BY = config.get('default-user', 'uuid')
 
+# default user
 default_user = {
     'co_person_id': config.get('default-user', 'co_person_id'),
     'co_status': config.get('default-user', 'co_status'),
@@ -68,6 +72,7 @@ def insert_default_user():
     sql_list = []
     for role_name in default_user['role_names']:
         try:
+            role_id = MOCK_ROLE_ID_FLAG
             # get comanage_cous id and name
             sql = """
             SELECT id from comanage_cous WHERE name = '{0}';
@@ -75,11 +80,11 @@ def insert_default_user():
             dfq = dict_from_query(sql)
             co_cou_id = dfq[0].get('id')
             command = """
-            INSERT INTO fabric_roles(cou_id, people_id, role_name)
-            VALUES ('{0}', '{1}', '{2}')
+            INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
+            VALUES ({0}, {1}, '{2}', {3})
             ON CONFLICT ON CONSTRAINT fabric_role_duplicate
             DO NOTHING;
-            """.format(co_cou_id, people_id, role_name)
+            """.format(int(co_cou_id), int(people_id), role_name, int(role_id))
             sql_list.append(command)
         except KeyError:
             pass
@@ -250,7 +255,9 @@ def update_co_person_cou_links(co_person_id):
     people_id = dfq[0].get('id')
     sql_list = []
     for role in role_data['CoPersonRoles']:
+        # pprint(role)
         try:
+            role_id = role['Id']
             # get comanage_cous id and name
             sql = """
             SELECT id, name from comanage_cous WHERE cou_id = '{0}'
@@ -259,11 +266,11 @@ def update_co_person_cou_links(co_person_id):
             co_cou_id = dfq[0].get('id')
             co_role_name = dfq[0].get('name')
             command = """
-            INSERT INTO fabric_roles(cou_id, people_id, role_name)
-            VALUES ('{0}', '{1}', '{2}')
+            INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
+            VALUES ({0}, {1}, '{2}', {3})
             ON CONFLICT ON CONSTRAINT fabric_role_duplicate
             DO NOTHING;
-            """.format(co_cou_id, people_id, co_role_name)
+            """.format(int(co_cou_id), int(people_id), co_role_name, int(role_id))
             sql_list.append(command)
         except KeyError:
             pass
@@ -275,20 +282,21 @@ def update_co_person_cou_links(co_person_id):
 def update_projects_data():
     cous = []
     sql = """
-    SELECT name from comanage_cous;
+    SELECT name, description from comanage_cous;
     """
     dfq = dict_from_query(sql)
     for cou in dfq:
-        cous.append(cou['name'])
+        cous.append({'name': cou.get('name'), 'desc': cou.get('description')})
     # update fabric_projects table
     sql_list = []
     temp_list = []
     for cou in cous:
-        match = re.search("([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})", cou)
-        if match:
-            temp_list.append(match[0])
-    cou_list = set(temp_list)
-    for cou in cou_list:
+        match = re.search("([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})", cou.get('name'))
+        if match and cou.get('name')[-3:] == '-po':
+            temp_list.append({'name': match[0], 'desc': cou.get('desc')})
+    pprint(temp_list)
+    cou_set = temp_list.copy()
+    for cou in cou_set:
         t_now = datetime.now()
         t_zone = timezone(TIMEZONE)
         created_time = t_zone.localize(t_now)
@@ -297,7 +305,7 @@ def update_projects_data():
         VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}')
         ON CONFLICT ON CONSTRAINT projects_uuid
         DO NOTHING;
-        """.format(cou, DEFAULT_NAME, DEFAULT_DESCRIPTION, DEFAULT_FACILITY, DEFAULT_CREATED_BY, created_time)
+        """.format(cou.get('name'), cou.get('desc'), DEFAULT_DESCRIPTION, DEFAULT_FACILITY, DEFAULT_CREATED_BY, created_time)
         sql_list.append(command)
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to load project data")

@@ -25,6 +25,7 @@ fi
 
 # install packages from requirements file
 source venv/bin/activate
+pip install -U pip
 echo "[INFO] install requirements.txt"
 pip install -r requirements.txt
 

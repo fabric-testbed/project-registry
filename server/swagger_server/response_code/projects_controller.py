@@ -10,7 +10,9 @@ from swagger_server.models.project_short import ProjectShort  # noqa: E501
 
 from . import DEFAULT_USER_UUID, DEFAULT_USER_NAME, DEFAULT_USER_EMAIL
 from .people_controller import people_uuid_get
-from .utils import dict_from_query, run_sql_commands, resolve_empty_people_uuid
+from .utils import dict_from_query, run_sql_commands, resolve_empty_people_uuid, \
+    filter_out_preexisting_project_owners, filter_out_preexisting_project_members, \
+    filter_out_nonexisting_project_owners, filter_out_nonexisting_project_members
 from ..authorization.people import get_api_person
 from ..authorization.projects import filter_projects_get, authorize_projects_add_members_put, \
     authorize_projects_add_owners_put, authorize_projects_add_tags_put, authorize_projects_create_post, \
@@ -18,7 +20,8 @@ from ..authorization.projects import filter_projects_get, authorize_projects_add
     authorize_projects_remove_owners_put, authorize_projects_remove_tags_put, authorize_projects_update_put, \
     authorize_projects_uuid_get, DEFAULT_USER_UUID
 from ..comanage_api.comanage_api import comanage_projects_add_members_put, comanage_projects_add_owners_put, \
-    comanage_projects_remove_members_put, comanage_projects_remove_owners_put, comanage_projects_create_post
+    comanage_projects_remove_members_put, comanage_projects_remove_owners_put, comanage_projects_create_post, \
+    comanage_projects_delete_delete
 
 config = ConfigParser()
 config.read('swagger_server/config/config.ini')
@@ -57,6 +60,7 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     resolve_empty_people_uuid()
 
     if project_members:
+        project_members = filter_out_preexisting_project_members(list(set(project_members)), project_id)
         if not comanage_projects_add_members_put(uuid, project_members):
             return 'Unable to add members: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to add members in COmanage'}
@@ -91,18 +95,8 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
                     """.format(project_id, people_id)
                     sql_list.append(sql)
 
-                    # add cou to fabric_roles table
-                    sql = """
-                    INSERT INTO fabric_roles(people_id, cou_id, role_name)
-                    VALUES ({0}, {1}, '{2}')
-                    ON CONFLICT ON CONSTRAINT fabric_role_duplicate
-                    DO NOTHING
-                    """.format(people_id, cou_id_pm, role_name_pm)
-                    sql_list.append(sql)
-
                 except (Exception, psycopg2.DatabaseError) as error:
                     print(error)
-                    pass
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to add project members data")
@@ -144,22 +138,20 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
     resolve_empty_people_uuid()
 
     if project_owners:
+        # copy project_members from project_owners
+        project_members = project_owners.copy()
+
+        # comanage project owners role
+        project_owners = filter_out_preexisting_project_owners(list(set(project_owners)), project_id)
         if not comanage_projects_add_owners_put(uuid, project_owners):
             return 'Unable to add owners: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to add owners in COmanage'}
 
-        # get role_name and cou_id for -po and -pm
-        role_name_po = str(uuid) + '-po'
-        sql = """
-        SELECT id from comanage_cous WHERE name = '{0}';
-        """.format(role_name_po)
-        cou_id_po = dict_from_query(sql)[0].get('id')
-
-        role_name_pm = str(uuid) + '-pm'
-        sql = """
-        SELECT id from comanage_cous WHERE name = '{0}';
-        """.format(role_name_pm)
-        cou_id_pm = dict_from_query(sql)[0].get('id')
+        # comanage project memebers role
+        project_members = filter_out_preexisting_project_members(list(set(project_members)), project_id)
+        if not comanage_projects_add_members_put(uuid, project_members):
+            return 'Unable to add members: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to add members in COmanage'}
 
         for person_uuid in project_owners:
             if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
@@ -193,27 +185,8 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
                     """.format(project_id, people_id)
                     sql_list.append(sql)
 
-                    # add -po cou to fabric_roles table
-                    sql = """
-                    INSERT INTO fabric_roles(people_id, cou_id, role_name)
-                    VALUES ({0}, '{1}', '{2}')
-                    ON CONFLICT ON CONSTRAINT fabric_role_duplicate
-                    DO NOTHING
-                    """.format(people_id, cou_id_po, role_name_po)
-                    sql_list.append(sql)
-
-                    # add -pm cou to fabric_roles table
-                    sql = """
-                    INSERT INTO fabric_roles(people_id, cou_id, role_name)
-                    VALUES ({0}, '{1}', '{2}')
-                    ON CONFLICT ON CONSTRAINT fabric_role_duplicate
-                    DO NOTHING
-                    """.format(people_id, cou_id_pm, role_name_pm)
-                    sql_list.append(sql)
-
                 except (Exception, psycopg2.DatabaseError) as error:
                     print(error)
-                    pass
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to add project owners data")
@@ -237,8 +210,8 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
     sql_list = []
     # get project id
     sql = """
-        SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-        """.format(uuid)
+    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
+    """.format(uuid)
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
@@ -345,22 +318,11 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     else:
         project_owners = [api_person.uuid]
     if project_owners:
+        project_members += project_owners.copy()
+        project_owners = filter_out_preexisting_project_owners(list(set(project_owners)), project_id)
         if not comanage_projects_add_owners_put(project_uuid, project_owners):
             return 'Unable to add owners: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to add owners in COmanage'}
-
-        # get role_name and cou_id for -po and -pm
-        role_name_po = str(project_uuid) + '-po'
-        sql = """
-        SELECT id from comanage_cous WHERE name = '{0}';
-        """.format(role_name_po)
-        cou_id_po = dict_from_query(sql)[0].get('id')
-
-        role_name_pm = str(project_uuid) + '-pm'
-        sql = """
-        SELECT id from comanage_cous WHERE name = '{0}';
-        """.format(role_name_pm)
-        cou_id_pm = dict_from_query(sql)[0].get('id')
 
         for person_uuid in project_owners:
             if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
@@ -386,49 +348,15 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
                     """.format(project_id, people_id)
                     sql_list.append(sql)
 
-                    # add to project_members table
-                    sql = """
-                    INSERT INTO project_members(projects_id, people_id)
-                    VALUES ({0}, '{1}')
-                    ON CONFLICT ON CONSTRAINT project_members_duplicate
-                    DO NOTHING
-                    """.format(project_id, people_id)
-                    sql_list.append(sql)
-
-                    # add cou to fabric_roles table
-                    sql = """
-                    INSERT INTO fabric_roles(people_id, cou_id, role_name)
-                    VALUES ({0}, '{1}', '{2}')
-                    ON CONFLICT ON CONSTRAINT fabric_role_duplicate
-                    DO NOTHING
-                    """.format(people_id, cou_id_po, role_name_po)
-                    sql_list.append(sql)
-
-                    # add cou to fabric_roles table
-                    cou = str(project_uuid) + '-pm'
-                    sql = """
-                    INSERT INTO fabric_roles(people_id, cou_id, role_name)
-                    VALUES ({0}, '{1}', '{2}')
-                    ON CONFLICT ON CONSTRAINT fabric_role_duplicate
-                    DO NOTHING
-                    """.format(people_id, cou_id_pm, role_name_pm)
-                    sql_list.append(sql)
-
                 except (Exception, psycopg2.DatabaseError) as error:
                     print(error)
-                    pass
+
     # project members
     if project_members:
+        project_members = filter_out_preexisting_project_members(list(set(project_members)), project_id)
         if not comanage_projects_add_members_put(project_uuid, project_members):
             return 'Unable to add members: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to add members in COmanage'}
-
-        # get role_name and cou_id for -pm
-        role_name_pm = str(project_uuid) + '-pm'
-        sql = """
-        SELECT id from comanage_cous WHERE name = '{0}';
-        """.format(role_name_pm)
-        cou_id_pm = dict_from_query(sql)[0].get('id')
 
         for person_uuid in project_members:
             if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
@@ -454,18 +382,8 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
                     """.format(project_id, people_id)
                     sql_list.append(sql)
 
-                    # add cou to fabric_roles table
-                    cou = str(project_uuid) + '-pm'
-                    sql = """
-                    INSERT INTO fabric_roles(people_id, cou_id, role_name)
-                    VALUES ({0}, '{1}', '{2}')
-                    ON CONFLICT ON CONSTRAINT fabric_role_duplicate
-                    DO NOTHING
-                    """.format(people_id, cou_id_pm, role_name_pm)
-                    sql_list.append(sql)
                 except (Exception, psycopg2.DatabaseError) as error:
                     print(error)
-                    pass
 
     # tags
     if tags:
@@ -517,16 +435,41 @@ def projects_delete_delete(uuid):  # noqa: E501
     if not authorize_projects_delete_delete(request.headers, created_by):
         return 'Authorization information is missing or invalid: /projects/delete', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+
     # TODO: get list of project_owners
+    sql = """
+    SELECT fabric_people.uuid
+    FROM fabric_people INNER JOIN project_owners
+    ON fabric_people.id = project_owners.people_id
+    WHERE project_owners.projects_id = {0};
+    """.format(int(project_id))
+    dfq = dict_from_query(sql)
     project_owners = []
+    for member in dfq:
+        project_owners.append(member.get('uuid'))
     if not comanage_projects_remove_owners_put(uuid, project_owners):
         return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
                {'X-Error': 'Unable to remove owners in COmanage'}
+
     # TODO: get list of project_members
+    sql = """
+    SELECT fabric_people.uuid
+    FROM fabric_people INNER JOIN project_members
+    ON fabric_people.id = project_members.people_id
+    WHERE project_members.projects_id = {0};
+    """.format(int(project_id))
+    dfq = dict_from_query(sql)
     project_members = []
+    for member in dfq:
+        project_members.append(member.get('uuid'))
     if not comanage_projects_remove_members_put(uuid, project_members):
         return 'Unable to remove members: {0}'.format(str(uuid)), 501, \
                {'X-Error': 'Unable to remove members in COmanage'}
+
+    # TODO:
+    if not comanage_projects_delete_delete(uuid):
+        return 'Unable to delete project COUs: {0}'.format(str(uuid)), 501, \
+               {'X-Error': 'Unable to delete project in COmanage'}
 
     # project owners
     sql = """
@@ -547,13 +490,6 @@ def projects_delete_delete(uuid):  # noqa: E501
     DELETE FROM tags
     WHERE tags.projects_id = {0};
     """.format(project_id)
-    sql_list.append(sql)
-
-    # roles
-    sql = """
-    DELETE FROM fabric_roles
-    WHERE fabric_roles.role_name LIKE '%{0}%';
-    """.format(uuid)
     sql_list.append(sql)
 
     # project
@@ -655,9 +591,11 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
                {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_members:
+        project_members = filter_out_nonexisting_project_members(list(set(project_members)), project_id)
         if not comanage_projects_remove_members_put(uuid, project_members):
             return 'Unable to remove members: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to remove members in COmanage'}
+
         for person_uuid in project_members:
             if person_uuid != DEFAULT_USER_UUID:
                 try:
@@ -679,24 +617,20 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
                     """.format(project_id, people_id)
                     sql_list.append(sql)
 
-                    # remove -pm cou from fabric_roles table
-                    cou = str(uuid) + '-pm'
-                    sql = """
-                    DELETE FROM fabric_roles
-                    WHERE fabric_roles.people_id = {0} AND role_name = '{1}';
-                    """.format(people_id, cou)
-                    sql_list.append(sql)
-
                     # check if person is also in project_owners
                     sql_po_check = """
                     SELECT EXISTS (
-                        SELECT 1 FROM project_owners 
-                        WHERE project_owners.projects_id = {0} and project_owners.people_id = {1}
+                    SELECT 1 FROM project_owners 
+                    WHERE project_owners.projects_id = {0} and project_owners.people_id = {1}
                     );
                     """.format(project_id, people_id)
                     dfq = dict_from_query(sql_po_check)
-                    print(dfq[0])
                     if dfq[0].get('exists'):
+                        project_owners = [person_uuid]
+                        if not comanage_projects_remove_owners_put(uuid, project_owners):
+                            return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
+                                   {'X-Error': 'Unable to remove owners in COmanage'}
+
                         # remove people_id from project_owners table
                         sql = """
                         DELETE FROM project_owners
@@ -704,17 +638,8 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
                         """.format(project_id, people_id)
                         sql_list.append(sql)
 
-                        # remove -po cou from fabric_roles table
-                        cou = str(uuid) + '-po'
-                        sql = """
-                        DELETE FROM fabric_roles
-                        WHERE fabric_roles.people_id = {0} AND role_name = '{1}';
-                        """.format(people_id, cou)
-                        sql_list.append(sql)
-
                 except (Exception, psycopg2.DatabaseError) as error:
                     print(error)
-                    pass
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to remove project members data")
@@ -753,6 +678,7 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
                {'X-Error': 'Authorization information is missing or invalid'}
 
     if project_owners:
+        project_owners = filter_out_nonexisting_project_owners(list(set(project_owners)), project_id)
         if not comanage_projects_remove_owners_put(uuid, project_owners):
             return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to remove owners in COmanage'}
@@ -761,8 +687,8 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
                 try:
                     # get people id
                     sql = """
-                        SELECT id FROM fabric_people WHERE uuid = '{0}';
-                        """.format(person_uuid)
+                    SELECT id FROM fabric_people WHERE uuid = '{0}';
+                    """.format(person_uuid)
                     dfq = dict_from_query(sql)
                     try:
                         people_id = dfq[0].get('id')
@@ -774,20 +700,11 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
                     sql = """
                     DELETE FROM project_owners
                     WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
-                        """.format(project_id, people_id)
-                    sql_list.append(sql)
-
-                    # remove cou from fabric_roles table
-                    cou = str(uuid) + '-pm'
-                    sql = """
-                    DELETE FROM fabric_roles
-                    WHERE fabric_roles.people_id = {0} AND role_name = '{1}';
-                    """.format(people_id, cou)
+                    """.format(project_id, people_id)
                     sql_list.append(sql)
 
                 except (Exception, psycopg2.DatabaseError) as error:
                     print(error)
-                    pass
 
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to remove project owners data")

@@ -129,6 +129,7 @@ def create_tables():
             id SERIAL PRIMARY KEY,
             people_id int NOT NULL,
             cou_id int NOT NULL,
+            role_id int NOT NULL,
             role_name VARCHAR(255) NOT NULL,
             FOREIGN KEY (people_id) REFERENCES fabric_people(id) ON UPDATE CASCADE,
             FOREIGN KEY (cou_id) REFERENCES comanage_cous(id) ON UPDATE CASCADE,

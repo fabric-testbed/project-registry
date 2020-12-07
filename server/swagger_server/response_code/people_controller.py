@@ -168,19 +168,22 @@ def people_uuid_get(uuid):  # noqa: E501
     else:
         # if not facility operator, get all groups from project owners and members tables
         sql_projects = """
-        SELECT uuid, name, description, facility, created_by from fabric_projects
+        SELECT uuid, name, description, facility, created_by, created_time from fabric_projects
         INNER JOIN project_owners ON fabric_projects.id = project_owners.projects_id 
         AND project_owners.people_id = {0}
         UNION
-        SELECT uuid, name, description, facility, created_by from fabric_projects
+        SELECT uuid, name, description, facility, created_by, created_time from fabric_projects
         INNER JOIN project_members ON fabric_projects.id = project_members.projects_id 
         AND project_members.people_id = {0}
         ORDER BY name;
         """.format(people_id)
     dfq = dict_from_query(sql_projects)
     for project in dfq:
-        pr = {'uuid': project.get('uuid'), 'name': project.get('name'), 'description': project.get('description'),
-              'facility': project.get('facility'), 'created_by': project.get('created_by')}
+        pr = {
+            'uuid': project.get('uuid'), 'name': project.get('name'), 'description': project.get('description'),
+            'facility': project.get('facility'), 'created_by': project.get('created_by'),
+            'created_time': project.get('created_time')
+        }
         projects.append(pr)
 
     # construct response object

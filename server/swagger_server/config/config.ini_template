@@ -1,9 +1,10 @@
 ; comanage-api - API Username / Key for COmanage API
 [comanage-api]
-api_key = co_api_key
-api_username = co_api_username
-api_coid = co_coid
+api_key = API_KEY
+api_username = API_USER_NAME
+api_coid = API_COID
 empty_parent_flag = -1
+projects_cou_id  = PROJECTS_COU_ID
 
 ; default-user - Default user settings for when user credentials are not found in the header
 [default-user]
@@ -29,12 +30,13 @@ project_leads = project-leads
 comanage_api = True
 ; True = use mock data instead of data found in COmanage
 data = True
-; mock data files - representative of COmanage API JSON response files
+; mock data files
 mock_co_people = mock_data/co_people.json
 mock_co_person_roles = mock_data/co_person_roles.json
 mock_cous = mock_data/cous.json
 mock_email_addresses = mock_data/email_addresses.json
 mock_names = mock_data/names.json
+mock_role_id_flag = -1
 ; True = use mock api calls to User Information Service (generates UUID values for users)
 uis_api = True
 
@@ -54,11 +56,11 @@ user = postgres
 ; Cookie name
 cookie_name = fabric-service
 ; Cookie domain
-cookie_domain = uis_cookie_domain
+cookie_domain = COOKIE_DOMAIN
 ; API URL
-api_url = uis_api_url
+api_url = UIS_API_URL
 ; API port
-api_port = uis_port
+api_port = UIS_API_PORT
 ; SSL verify - Verify SSL certificate (set to False for self-signed certs)
 ssl_verify = False
 
