@@ -48,7 +48,8 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     try:
         project_id = dfq[0].get('id')
         created_by = dfq[0].get('created_by')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
@@ -82,7 +83,8 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
                     dfq = dict_from_query(sql)
                     try:
                         people_id = dfq[0].get('id')
-                    except IndexError:
+                    except IndexError or KeyError or TypeError as err:
+                        print(err)
                         return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
                                {'X-Error': 'Person UUID Not Found'}
 
@@ -126,7 +128,8 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
     try:
         project_id = dfq[0].get('id')
         created_by = dfq[0].get('created_by')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
@@ -163,7 +166,8 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
                     dfq = dict_from_query(sql)
                     try:
                         people_id = dfq[0].get('id')
-                    except IndexError:
+                    except IndexError or KeyError or TypeError as err:
+                        print(err)
                         return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
                                {'X-Error': 'Person UUID Not Found'}
 
@@ -216,7 +220,8 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
     try:
         project_id = dfq[0].get('id')
         created_by = dfq[0].get('created_by')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
@@ -304,7 +309,8 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     dfq = dict_from_query(sql)
     try:
         project_id = dfq[0].get('id')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         projects_delete_delete(str(project_uuid))
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
@@ -334,7 +340,8 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
                     dfq = dict_from_query(sql)
                     try:
                         people_id = dfq[0].get('id')
-                    except IndexError:
+                    except IndexError or KeyError or TypeError as err:
+                        print(err)
                         projects_delete_delete(str(project_uuid))
                         return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
                                {'X-Error': 'Person UUID Not Found'}
@@ -368,7 +375,8 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
                     dfq = dict_from_query(sql)
                     try:
                         people_id = dfq[0].get('id')
-                    except IndexError:
+                    except IndexError or KeyError or TypeError as err:
+                        print(err)
                         projects_delete_delete(str(project_uuid))
                         return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
                                {'X-Error': 'Person UUID Not Found'}
@@ -428,7 +436,8 @@ def projects_delete_delete(uuid):  # noqa: E501
     try:
         project_id = dfq[0].get('id')
         created_by = dfq[0].get('created_by')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
@@ -582,7 +591,8 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
     try:
         project_id = dfq[0].get('id')
         created_by = dfq[0].get('created_by')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
@@ -606,7 +616,8 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
                     dfq = dict_from_query(sql)
                     try:
                         people_id = dfq[0].get('id')
-                    except IndexError:
+                    except IndexError or KeyError or TypeError as err:
+                        print(err)
                         return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
                                {'X-Error': 'Person UUID Not Found'}
 
@@ -669,7 +680,8 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
     try:
         project_id = dfq[0].get('id')
         created_by = dfq[0].get('created_by')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
@@ -692,7 +704,8 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
                     dfq = dict_from_query(sql)
                     try:
                         people_id = dfq[0].get('id')
-                    except IndexError:
+                    except IndexError or KeyError or TypeError as err:
+                        print(err)
                         return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
                                {'X-Error': 'Person UUID Not Found'}
 
@@ -734,7 +747,8 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
     try:
         project_id = dfq[0].get('id')
         created_by = dfq[0].get('created_by')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
@@ -787,7 +801,8 @@ def projects_update_put(uuid, name=None, description=None, facility=None):  # no
     try:
         project_id = dfq[0].get('id')
         created_by = dfq[0].get('created_by')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
@@ -845,7 +860,8 @@ def projects_uuid_get(uuid):  # noqa: E501
     try:
         project_id = dfq[0].get('id')
         created_by = dfq[0].get('created_by')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization

@@ -23,10 +23,12 @@ def get_api_person(x_vouch_idp_idtoken):
     if config.getboolean('mock', 'data'):
         api_user = auth_utils_oidc_claim_sub_get(DEFAULT_USER_OIDC_CLAIM_SUB)
     elif x_vouch_idp_idtoken:
+        print(x_vouch_idp_idtoken)
         decoded = decode(x_vouch_idp_idtoken, verify=False)
         try:
             api_user = auth_utils_oidc_claim_sub_get(decoded.get('sub'))
-        except IndexError:
+        except IndexError or KeyError or TypeError as err:
+            print(err)
             print('User not found')
     else:
         api_user = auth_utils_oidc_claim_sub_get(config.get('default-user', 'oidc_claim_sub'))
@@ -46,7 +48,8 @@ def auth_utils_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
     dfq = dict_from_query(sql)
     try:
         people_id = dfq[0].get('id')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         # user not found within COmanage - return default user
         api_user = auth_utils_oidc_claim_sub_get(config.get('default-user', 'oidc_claim_sub'))
         return api_user

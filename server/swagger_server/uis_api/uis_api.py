@@ -30,14 +30,18 @@ def uis_get_uuid_from_oidc_claim_sub(oidc_claim_sub):
         )
         s.cookies.set_cookie(cookie_obj)
         cookies = s.cookies
-
-        response = requests.get(
-            url=UIS_API_URL + ':' + UIS_API_PORT + '/uuid/oidc_claim_sub',
-            params=params,
-            cookies=cookies,
-            verify=config.getboolean('uis', 'ssl_verify')
-        )
+        try:
+            response = requests.get(
+                url=UIS_API_URL + ':' + UIS_API_PORT + '/uuid/oidc_claim_sub',
+                params=params,
+                cookies=cookies,
+                verify=config.getboolean('uis', 'ssl_verify')
+            )
+        except requests.exceptions.ConnectionError as e:
+            print(e)
+            return ''
         if response.status_code == requests.codes.ok:
             return response.json()
         else:
             return ''
+

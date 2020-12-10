@@ -95,7 +95,8 @@ def people_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
     dfq = dict_from_query(sql)
     try:
         uuid = dfq[0].get('uuid')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'OIDC Claim sub Not Found: {0}'.format(str(oidc_claim_sub)), 404, {'X-Error': 'OIDC Claim sub Not Found'}
 
     # check authorization
@@ -129,7 +130,8 @@ def people_uuid_get(uuid):  # noqa: E501
     dfq = dict_from_query(sql)
     try:
         people_id = dfq[0].get('id')
-    except IndexError:
+    except IndexError or KeyError or TypeError as err:
+        print(err)
         return 'Person UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Person UUID Not Found'}
 
     # check authorization

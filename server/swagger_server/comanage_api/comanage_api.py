@@ -80,7 +80,8 @@ def comanage_projects_create_post(project_uuid, project_name):
         cou = comanage_add_new_cou(cou_name, project_name)['Cous'][0]
         try:
             parent_id = cou['ParentId']
-        except IndexError or KeyError:
+        except IndexError or KeyError or TypeError as err:
+            print(err)
             parent_id = EMPTY_PARENT_FLAG
 
         command = """
