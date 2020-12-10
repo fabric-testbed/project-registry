@@ -324,7 +324,10 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     else:
         project_owners = [api_person.uuid]
     if project_owners:
-        project_members += project_owners.copy()
+        if project_members:
+            project_members += project_owners.copy()
+        else:
+            project_members = project_owners.copy()
         project_owners = filter_out_preexisting_project_owners(list(set(project_owners)), project_id)
         if not comanage_projects_add_owners_put(project_uuid, project_owners):
             return 'Unable to add owners: {0}'.format(str(uuid)), 501, \
