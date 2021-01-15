@@ -2,16 +2,14 @@
 import json
 import re
 from configparser import ConfigParser
-from datetime import datetime
+from pprint import pprint
 from uuid import uuid4
 
 import psycopg2
 import requests
-from drop_create_tables import Session
-from pytz import timezone
 from requests.auth import HTTPBasicAuth
 
-from pprint import pprint
+from drop_create_tables import Session
 
 config = ConfigParser()
 config.read('../server/swagger_server/config/config.ini')
@@ -31,7 +29,7 @@ MOCK_NAMES_FILE = config.get('mock', 'mock_names')
 MOCK_ROLE_ID_FLAG = config.get('mock', 'mock_role_id_flag')
 
 # Timezone
-TIMEZONE = 'America/New_York'
+TIMEZONE = 'UTC'
 
 # default values
 DEFAULT_NAME = 'INSERT_PROJECT_NAME'
@@ -282,30 +280,28 @@ def update_co_person_cou_links(co_person_id):
 def update_projects_data():
     cous = []
     sql = """
-    SELECT name, description from comanage_cous;
+    SELECT name, description, created_date from comanage_cous;
     """
     dfq = dict_from_query(sql)
     for cou in dfq:
-        cous.append({'name': cou.get('name'), 'desc': cou.get('description')})
+        cous.append({'name': cou.get('name'), 'desc': cou.get('description'), 'created_date': cou.get('created_date')})
     # update fabric_projects table
     sql_list = []
     temp_list = []
     for cou in cous:
         match = re.search("([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})", cou.get('name'))
         if match and cou.get('name')[-3:] == '-po':
-            temp_list.append({'name': match[0], 'desc': cou.get('desc')})
+            temp_list.append({'name': match[0], 'desc': cou.get('desc'), 'created_date': cou.get('created_date')})
     pprint(temp_list)
     cou_set = temp_list.copy()
     for cou in cou_set:
-        t_now = datetime.now()
-        t_zone = timezone(TIMEZONE)
-        created_time = t_zone.localize(t_now)
         command = """
         INSERT INTO fabric_projects(uuid, name, description, facility, created_by, created_time)
         VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}')
         ON CONFLICT ON CONSTRAINT projects_uuid
         DO NOTHING;
-        """.format(cou.get('name'), cou.get('desc'), DEFAULT_DESCRIPTION, DEFAULT_FACILITY, DEFAULT_CREATED_BY, created_time)
+        """.format(cou.get('name'), cou.get('desc'), DEFAULT_DESCRIPTION, DEFAULT_FACILITY, DEFAULT_CREATED_BY,
+                   cou.get('created_date'))
         sql_list.append(command)
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to load project data")

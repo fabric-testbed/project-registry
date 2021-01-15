@@ -32,7 +32,7 @@ def get_api_person(x_vouch_idp_idtoken):
             print('User not found')
     else:
         api_user = auth_utils_oidc_claim_sub_get(config.get('default-user', 'oidc_claim_sub'))
-
+    print('[INFO] Operating as: ' + str(api_user.name))
     return api_user
 
 

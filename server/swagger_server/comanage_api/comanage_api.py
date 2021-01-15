@@ -21,16 +21,26 @@ def comanage_projects_add_members_put(project_uuid, project_members):
     sql = """
     SELECT id, cou_id from comanage_cous WHERE name = '{0}';
     """.format(project_cou_pm)
-    cou_id = dict_from_query(sql)[0].get('id')
-    co_cou_id = dict_from_query(sql)[0].get('cou_id')
+    try:
+        dfq = dict_from_query(sql)
+        cou_id = dfq[0].get('id')
+        co_cou_id = dfq[0].get('cou_id')
+    except KeyError or IndexError as err:
+        print(err)
+        return False
     for user_uuid in project_members:
         # get co_person_id
         sql = """
        SELECT id, co_person_id from fabric_people WHERE uuid = '{0}';
        """.format(user_uuid)
-        person_id = dict_from_query(sql)[0].get('id')
-        co_person_id = dict_from_query(sql)[0].get('co_person_id')
-        co_role_id = comanange_add_users_to_cou(co_person_id, co_cou_id)
+        try:
+            dfq = dict_from_query(sql)
+            person_id = dfq[0].get('id')
+            co_person_id = dfq[0].get('co_person_id')
+            co_role_id = comanange_add_users_to_cou(co_person_id, co_cou_id)
+        except KeyError or IndexError as err:
+            print(err)
+            return False
         # add cou to fabric_roles table
         command = """
         INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
@@ -50,16 +60,26 @@ def comanage_projects_add_owners_put(project_uuid, project_owners):
     sql = """
     SELECT id, cou_id from comanage_cous WHERE name = '{0}';
     """.format(project_cou_po)
-    cou_id = dict_from_query(sql)[0].get('id')
-    co_cou_id = dict_from_query(sql)[0].get('cou_id')
+    try:
+        dfq = dict_from_query(sql)
+        cou_id = dfq[0].get('id')
+        co_cou_id = dfq[0].get('cou_id')
+    except KeyError or IndexError as err:
+        print(err)
+        return False
     for user_uuid in project_owners:
         # get co_person_id
         sql = """
        SELECT id, co_person_id from fabric_people WHERE uuid = '{0}';
        """.format(user_uuid)
-        person_id = dict_from_query(sql)[0].get('id')
-        co_person_id = dict_from_query(sql)[0].get('co_person_id')
-        co_role_id = comanange_add_users_to_cou(co_person_id, co_cou_id)
+        try:
+            dfq = dict_from_query(sql)
+            person_id = dfq[0].get('id')
+            co_person_id = dfq[0].get('co_person_id')
+            co_role_id = comanange_add_users_to_cou(co_person_id, co_cou_id)
+        except KeyError or IndexError as err:
+            print(err)
+            return False
         # add cou to fabric_roles table
         command = """
         INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
@@ -128,21 +148,29 @@ def comanage_projects_remove_members_put(project_uuid, project_members):
         sql = """
         SELECT id FROM fabric_people WHERE uuid = '{0}';
         """.format(user_uuid)
-        people_id = dict_from_query(sql)[0].get('id')
+        try:
+            people_id = dict_from_query(sql)[0].get('id')
+        except IndexError or KeyError as err:
+            print(err)
+            return False
         # get co_role_id
         sql = """
         SELECT role_id FROM fabric_roles  
         WHERE people_id = {0}
         AND role_name = '{1}';
         """.format(people_id, project_cou_pm)
-        co_role_id = dict_from_query(sql)[0].get('role_id')
-        co_role_removed = comanage_remove_users_from_cou(co_role_id)
+        try:
+            co_role_id = dict_from_query(sql)[0].get('role_id')
+            co_role_removed = comanage_remove_users_from_cou(co_role_id)
+        except IndexError or KeyError as err:
+            print(err)
+            return False
         if co_role_removed:
             # remove cou to fabric_roles table
             command = """
             DELETE FROM fabric_roles
-            WHERE role_id = {0};
-            """.format(int(co_role_id))
+            WHERE people_id = {0} AND role_name = '{1}';
+            """.format(int(people_id), project_cou_pm)
             run_sql_commands(command)
         else:
             print('[INFO] error at: comanage_projects_remove_members_put(project_uuid, project_members)')
@@ -158,21 +186,29 @@ def comanage_projects_remove_owners_put(project_uuid, project_owners):
         sql = """
         SELECT id FROM fabric_people WHERE uuid = '{0}';
         """.format(user_uuid)
-        people_id = dict_from_query(sql)[0].get('id')
+        try:
+            people_id = dict_from_query(sql)[0].get('id')
+        except IndexError or KeyError as err:
+            print(err)
+            return False
         # get co_role_id
         sql = """
         SELECT role_id FROM fabric_roles  
         WHERE people_id = {0}
         AND role_name = '{1}';
         """.format(people_id, project_cou_po)
-        co_role_id = dict_from_query(sql)[0].get('role_id')
-        co_role_removed = comanage_remove_users_from_cou(co_role_id)
+        try:
+            co_role_id = dict_from_query(sql)[0].get('role_id')
+            co_role_removed = comanage_remove_users_from_cou(co_role_id)
+        except IndexError or KeyError as err:
+            print(err)
+            return False
         if co_role_removed:
             # remove cou to fabric_roles table
             command = """
             DELETE FROM fabric_roles
-            WHERE role_id = {0};
-            """.format(int(co_role_id))
+            WHERE people_id = {0} AND role_name = '{1}';
+            """.format(int(people_id), project_cou_po)
             run_sql_commands(command)
         else:
             print('[INFO] error at: comanage_projects_remove_owners_put(project_uuid, project_owners)')

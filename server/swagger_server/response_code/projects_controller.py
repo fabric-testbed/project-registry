@@ -12,7 +12,8 @@ from . import DEFAULT_USER_UUID, DEFAULT_USER_NAME, DEFAULT_USER_EMAIL
 from .people_controller import people_uuid_get
 from .utils import dict_from_query, run_sql_commands, resolve_empty_people_uuid, \
     filter_out_preexisting_project_owners, filter_out_preexisting_project_members, \
-    filter_out_nonexisting_project_owners, filter_out_nonexisting_project_members
+    filter_out_nonexisting_project_owners, filter_out_nonexisting_project_members, \
+    validate_project_reference, validate_project_members_list, validate_person_reference
 from ..authorization.people import get_api_person
 from ..authorization.projects import filter_projects_get, authorize_projects_add_members_put, \
     authorize_projects_add_owners_put, authorize_projects_add_tags_put, authorize_projects_create_post, \
@@ -39,31 +40,34 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
-    sql_list = []
-    # get project id
-    sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-    """.format(uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(uuid)
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
 
-    # check authorization
+    # validate authorization of user making request
     if not authorize_projects_add_members_put(request.headers, uuid, created_by):
-        return 'Authorization information is missing or invalid: /projects/add_members', 401, \
-               {'X-Error': 'Authorization information is missing or invalid'}
+        return 'Authorization required for: /projects/add_members', 401, \
+               {'X-Error': 'Authorization is missing or invalid'}
 
-    # resolve any missing people uuids
+    # attempt to resolve any missing people uuids
     resolve_empty_people_uuid()
 
+    # validate new members reference as provided by project_members
     if project_members:
-        project_members = filter_out_preexisting_project_members(list(set(project_members)), project_id)
-        if not comanage_projects_add_members_put(uuid, project_members):
-            return 'Unable to add members: {0}'.format(str(uuid)), 501, \
+        project_members_new, project_members_unknown = validate_project_members_list(project_members, project_id)
+        if project_members_unknown:
+            return 'Project member UUID reference Not Found: {0}'.format(', '.join(project_members_unknown)), 400, \
+                   {'X-Error': 'Project member UUID Unknown'}
+    else:
+        project_members_new = []
+
+    # add new project members to comanage group
+    sql_list = []
+    if project_members_new:
+        if not comanage_projects_add_members_put(uuid, project_members_new):
+            return 'Unable to add members: {0}'.format(str(uuid)), 500, \
                    {'X-Error': 'Unable to add members in COmanage'}
 
         # get role_name and cou_id for -pm
@@ -71,9 +75,15 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
         sql = """
         SELECT id from comanage_cous WHERE name = '{0}';
         """.format(role_name_pm)
-        cou_id_pm = dict_from_query(sql)[0].get('id')
+        try:
+            cou_id_pm = dict_from_query(sql)[0].get('id')
+        except KeyError or IndexError as err:
+            print(err)
+            return 'Unable to add members: {0}'.format(str(uuid)), 500, \
+                   {'X-Error': 'Unable to add members in COmanage'}
 
-        for person_uuid in project_members:
+        # add new members to database
+        for person_uuid in project_members_new:
             if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
                 try:
                     # get people id
@@ -100,6 +110,7 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
                 except (Exception, psycopg2.DatabaseError) as error:
                     print(error)
 
+    # add new project members to database
     commands = tuple(i for i in sql_list)
     print("[INFO] attempt to add project members data")
     run_sql_commands(commands)
@@ -119,18 +130,11 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
-    sql_list = []
-    # get project id
-    sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-    """.format(uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(uuid)
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
 
     # check authorization
     if not authorize_projects_add_owners_put(request.headers, created_by):
@@ -140,20 +144,37 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
     # resolve any missing people uuids
     resolve_empty_people_uuid()
 
+    # validate new owners reference as provided by project_members
     if project_owners:
-        # copy project_members from project_owners
-        project_members = project_owners.copy()
+        project_owners_new, project_owners_unknown = validate_project_members_list(project_owners, project_id)
+        if project_owners_unknown:
+            return 'Project owner UUID reference Not Found: {0}'.format(', '.join(project_owners_unknown)), 400, \
+                   {'X-Error': 'Project owner UUID Unknown'}
+    else:
+        project_owners_new = []
+
+    sql_list = []
+    if project_owners_new:
+        # copy project_members from project_owners_new
+        project_members = project_owners_new.copy()
+
+        # validate new members reference as provided by project_members
+        if project_members:
+            project_members_new, project_members_unknown = validate_project_members_list(project_members, project_id)
+            if project_members_unknown:
+                return 'Project member UUID reference Not Found: {0}'.format(', '.join(project_members_unknown)), 400, \
+                       {'X-Error': 'Project member UUID Unknown'}
+        else:
+            project_members_new = []
 
         # comanage project owners role
-        project_owners = filter_out_preexisting_project_owners(list(set(project_owners)), project_id)
-        if not comanage_projects_add_owners_put(uuid, project_owners):
-            return 'Unable to add owners: {0}'.format(str(uuid)), 501, \
+        if not comanage_projects_add_owners_put(uuid, project_owners_new):
+            return 'Unable to add owners: {0}'.format(str(uuid)), 500, \
                    {'X-Error': 'Unable to add owners in COmanage'}
 
         # comanage project memebers role
-        project_members = filter_out_preexisting_project_members(list(set(project_members)), project_id)
-        if not comanage_projects_add_members_put(uuid, project_members):
-            return 'Unable to add members: {0}'.format(str(uuid)), 501, \
+        if not comanage_projects_add_members_put(uuid, project_members_new):
+            return 'Unable to add members: {0}'.format(str(uuid)), 500, \
                    {'X-Error': 'Unable to add members in COmanage'}
 
         for person_uuid in project_owners:
@@ -211,18 +232,13 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(uuid)
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
+
     sql_list = []
-    # get project id
-    sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-    """.format(uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
     if not authorize_projects_add_tags_put(request.headers):
@@ -288,10 +304,31 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     api_person = get_api_person(request.headers.get('X-Vouch-Idp-Idtoken'))
     created_by = api_person.uuid
 
+    # validate new owners reference as provided by project_members
+    if project_owners:
+        project_owners.append(api_person.uuid)
+    else:
+        project_owners = [api_person.uuid]
+
+    project_owners_new, project_owners_unknown = validate_person_reference(project_owners)
+    if project_owners_unknown:
+        return 'Project owner UUID reference Not Found: {0}'.format(', '.join(project_owners_unknown)), 400, \
+               {'X-Error': 'Project owner UUID Unknown'}
+
+    # validate new members reference as provided by project_members
+    if project_members:
+        project_members += project_owners_new.copy()
+    else:
+        project_members = project_owners_new.copy()
+
+    project_members_new, project_members_unknown = validate_person_reference(project_members)
+    if project_members_unknown:
+        return 'Project member UUID reference Not Found: {0}'.format(', '.join(project_members_unknown)), 400, \
+               {'X-Error': 'Project member UUID Unknown'}
+
     # get created_time
-    t_now = datetime.now()
-    t_zone = timezone('America/New_York')
-    created_time = t_zone.localize(t_now)
+    t_now = datetime.utcnow()
+    created_time = t_now.strftime("%Y-%m-%d %H:%M:%S")
     # create new project entry
     project_uuid = uuid4()
     sql = """
@@ -301,100 +338,85 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
                created_by, created_time)
     run_sql_commands(sql)
 
-    sql_list = []
-    # get project id
-    sql = """
-    SELECT id FROM fabric_projects WHERE uuid = '{0}';
-    """.format(project_uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        projects_delete_delete(str(project_uuid))
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(str(project_uuid))
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
 
+    # create comanage groups for project (uuid-po and uuid-pm)
     if not comanage_projects_create_post(project_uuid, name):
-        return 'Unable to create project: {0}'.format(str(uuid)), 501, \
+        return 'Unable to create project: {0}'.format(str(uuid)), 500, \
                {'X-Error': 'Unable to create project in COmanage'}
 
-    # project owners
-    if project_owners:
-        project_owners.append(api_person.uuid)
-    else:
-        project_owners = [api_person.uuid]
-    if project_owners:
-        if project_members:
-            project_members += project_owners.copy()
-        else:
-            project_members = project_owners.copy()
-        project_owners = filter_out_preexisting_project_owners(list(set(project_owners)), project_id)
-        if not comanage_projects_add_owners_put(project_uuid, project_owners):
-            return 'Unable to add owners: {0}'.format(str(uuid)), 501, \
-                   {'X-Error': 'Unable to add owners in COmanage'}
+    # add projects owners to comanage uuid-po group
+    if not comanage_projects_add_owners_put(project_uuid, project_owners_new):
+        return 'Unable to add owners: {0}'.format(str(uuid)), 500, \
+               {'X-Error': 'Unable to add owners in COmanage'}
 
-        for person_uuid in project_owners:
-            if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
+    # add project owners to database
+    sql_list = []
+    for person_uuid in project_owners_new:
+        if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
+            try:
+                # get people id
+                sql = """
+                SELECT id FROM fabric_people WHERE uuid = '{0}';
+                """.format(person_uuid)
+                dfq = dict_from_query(sql)
                 try:
-                    # get people id
-                    sql = """
-                    SELECT id FROM fabric_people WHERE uuid = '{0}';
-                    """.format(person_uuid)
-                    dfq = dict_from_query(sql)
-                    try:
-                        people_id = dfq[0].get('id')
-                    except IndexError or KeyError or TypeError as err:
-                        print(err)
-                        projects_delete_delete(str(project_uuid))
-                        return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
-                               {'X-Error': 'Person UUID Not Found'}
+                    people_id = dfq[0].get('id')
+                except IndexError or KeyError or TypeError as err:
+                    print(err)
+                    projects_delete_delete(str(project_uuid))
+                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 400, \
+                           {'X-Error': 'Person UUID Not Found'}
 
-                    # add to project_owners table
-                    sql = """
-                    INSERT INTO project_owners(projects_id, people_id)
-                    VALUES ({0}, '{1}')
-                    ON CONFLICT ON CONSTRAINT project_owners_duplicate
-                    DO NOTHING
-                    """.format(project_id, people_id)
-                    sql_list.append(sql)
+                # add to project_owners table
+                sql = """
+                INSERT INTO project_owners(projects_id, people_id)
+                VALUES ({0}, '{1}')
+                ON CONFLICT ON CONSTRAINT project_owners_duplicate
+                DO NOTHING
+                """.format(project_id, people_id)
+                sql_list.append(sql)
 
-                except (Exception, psycopg2.DatabaseError) as error:
-                    print(error)
+            except (Exception, psycopg2.DatabaseError) as error:
+                print(error)
 
-    # project members
-    if project_members:
-        project_members = filter_out_preexisting_project_members(list(set(project_members)), project_id)
-        if not comanage_projects_add_members_put(project_uuid, project_members):
-            return 'Unable to add members: {0}'.format(str(uuid)), 501, \
-                   {'X-Error': 'Unable to add members in COmanage'}
+    # add projects members to comanage uuid-pm group
+    if not comanage_projects_add_members_put(project_uuid, project_members_new):
+        return 'Unable to add members: {0}'.format(str(uuid)), 500, \
+               {'X-Error': 'Unable to add members in COmanage'}
 
-        for person_uuid in project_members:
-            if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
+    # add project members to database
+    for person_uuid in project_members_new:
+        if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
+            try:
+                # get people id
+                sql = """
+                SELECT id FROM fabric_people WHERE uuid = '{0}';
+                """.format(person_uuid)
+                dfq = dict_from_query(sql)
                 try:
-                    # get people id
-                    sql = """
-                    SELECT id FROM fabric_people WHERE uuid = '{0}';
-                    """.format(person_uuid)
-                    dfq = dict_from_query(sql)
-                    try:
-                        people_id = dfq[0].get('id')
-                    except IndexError or KeyError or TypeError as err:
-                        print(err)
-                        projects_delete_delete(str(project_uuid))
-                        return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
-                               {'X-Error': 'Person UUID Not Found'}
+                    people_id = dfq[0].get('id')
+                except IndexError or KeyError or TypeError as err:
+                    print(err)
+                    projects_delete_delete(str(project_uuid))
+                    return 'Person UUID Not Found: {0}'.format(str(person_uuid)), 404, \
+                           {'X-Error': 'Person UUID Not Found'}
 
-                    # add to project_members table
-                    sql = """
-                    INSERT INTO project_members(projects_id, people_id)
-                    VALUES ({0}, '{1}')
-                    ON CONFLICT ON CONSTRAINT project_members_duplicate
-                    DO NOTHING
-                    """.format(project_id, people_id)
-                    sql_list.append(sql)
+                # add to project_members table
+                sql = """
+                INSERT INTO project_members(projects_id, people_id)
+                VALUES ({0}, '{1}')
+                ON CONFLICT ON CONSTRAINT project_members_duplicate
+                DO NOTHING
+                """.format(project_id, people_id)
+                sql_list.append(sql)
 
-                except (Exception, psycopg2.DatabaseError) as error:
-                    print(error)
+            except (Exception, psycopg2.DatabaseError) as error:
+                print(error)
 
     # tags
     if tags:
@@ -430,23 +452,18 @@ def projects_delete_delete(uuid):  # noqa: E501
 
     :rtype: None
     """
-    sql_list = []
-    # get project id
-    sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-    """.format(uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(uuid)
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
 
     # check authorization
     if not authorize_projects_delete_delete(request.headers, created_by):
         return 'Authorization information is missing or invalid: /projects/delete', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+
+    sql_list = []
 
     # TODO: get list of project_owners
     sql = """
@@ -512,7 +529,7 @@ def projects_delete_delete(uuid):  # noqa: E501
     sql_list.append(sql)
 
     commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to remove project owners data")
+    print("[INFO] attempt to remove all project data (owners, members, tags, project)")
     run_sql_commands(commands)
 
     return {}
@@ -585,18 +602,13 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(uuid)
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
+
     sql_list = []
-    # get project id
-    sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-    """.format(uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
     if not authorize_projects_remove_members_put(request.headers, uuid, created_by):
@@ -674,18 +686,13 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(uuid)
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
+
     sql_list = []
-    # get project id
-    sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-    """.format(uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
     if not authorize_projects_remove_owners_put(request.headers, created_by):
@@ -741,18 +748,13 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(uuid)
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
+
     sql_list = []
-    # get project id
-    sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-    """.format(uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
     if not authorize_projects_remove_tags_put(request.headers, uuid, created_by):
@@ -795,18 +797,13 @@ def projects_update_put(uuid, name=None, description=None, facility=None):  # no
 
     :rtype: ProjectLong
     """
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(uuid)
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
+
     sql_list = []
-    # get project id
-    sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-    """.format(uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
 
     # check authorization
     if not authorize_projects_update_put(request.headers, created_by):
@@ -855,17 +852,11 @@ def projects_uuid_get(uuid):  # noqa: E501
     # response as ProjectLong()
     response = ProjectLong()
 
-    # get project id
-    sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
-    """.format(uuid)
-    dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return 'Project UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Project UUID Not Found'}
+    # validate project reference as provided by uuid
+    project_id, created_by = validate_project_reference(uuid)
+    if project_id == -1:
+        return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
+               {'X-Error': 'Project UUID Unknown'}
 
     # check authorization
     if not authorize_projects_uuid_get(request.headers, uuid, created_by):
