@@ -92,10 +92,52 @@ def comanage_projects_add_owners_put(project_uuid, project_owners):
     return True
 
 
+def comanage_projects_add_creator_put(project_uuid, project_creator):
+    # get project cou
+    project_cou_pc = str(project_uuid) + '-pc'
+    # get co_cou_id
+    sql = """
+    SELECT id, cou_id from comanage_cous WHERE name = '{0}';
+    """.format(project_cou_pc)
+    try:
+        dfq = dict_from_query(sql)
+        cou_id = dfq[0].get('id')
+        co_cou_id = dfq[0].get('cou_id')
+    except KeyError or IndexError as err:
+        print(err)
+        return False
+    for user_uuid in project_creator:
+        print(user_uuid)
+        # get co_person_id
+        sql = """
+       SELECT id, co_person_id from fabric_people WHERE uuid = '{0}';
+       """.format(user_uuid)
+        try:
+            dfq = dict_from_query(sql)
+            print(dfq)
+            person_id = dfq[0].get('id')
+            co_person_id = dfq[0].get('co_person_id')
+            co_role_id = comanange_add_users_to_cou(co_person_id, co_cou_id)
+        except KeyError or IndexError as err:
+            print(err)
+            return False
+        # add cou to fabric_roles table
+        command = """
+        INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
+        VALUES ({0}, {1}, '{2}', {3})
+        ON CONFLICT ON CONSTRAINT fabric_role_duplicate
+        DO NOTHING;
+        """.format(int(cou_id), int(person_id), project_cou_pc, int(co_role_id))
+        run_sql_commands(command)
+
+    return True
+
+
 def comanage_projects_create_post(project_uuid, project_name):
     project_cou_po = str(project_uuid) + '-po'
     project_cou_pm = str(project_uuid) + '-pm'
-    cous_to_add = [project_cou_po, project_cou_pm]
+    project_cou_pc = str(project_uuid) + '-pc'
+    cous_to_add = [project_cou_po, project_cou_pm, project_cou_pc]
     for cou_name in cous_to_add:
         cou = comanage_add_new_cou(cou_name, project_name)['Cous'][0]
         try:
@@ -122,7 +164,8 @@ def comanage_projects_create_post(project_uuid, project_name):
 def comanage_projects_delete_delete(project_uuid):
     project_cou_po = str(project_uuid) + '-po'
     project_cou_pm = str(project_uuid) + '-pm'
-    cous_to_remove = [project_cou_po, project_cou_pm]
+    project_cou_pc = str(project_uuid) + '-pc'
+    cous_to_remove = [project_cou_po, project_cou_pm, project_cou_pc]
     for cou in cous_to_remove:
         sql = """
         SELECT cou_id FROM comanage_cous WHERE name = '{0}';
@@ -216,6 +259,44 @@ def comanage_projects_remove_owners_put(project_uuid, project_owners):
     return True
 
 
+def comanage_projects_remove_creators(project_uuid, project_creators):
+    # get project cou
+    project_cou_po = str(project_uuid) + '-pc'
+    for user_uuid in project_creators:
+        # get people_id
+        sql = """
+        SELECT id FROM fabric_people WHERE uuid = '{0}';
+        """.format(user_uuid)
+        try:
+            people_id = dict_from_query(sql)[0].get('id')
+        except IndexError or KeyError as err:
+            print(err)
+            return False
+        # get co_role_id
+        sql = """
+        SELECT role_id FROM fabric_roles  
+        WHERE people_id = {0}
+        AND role_name = '{1}';
+        """.format(people_id, project_cou_po)
+        try:
+            co_role_id = dict_from_query(sql)[0].get('role_id')
+            co_role_removed = comanage_remove_users_from_cou(co_role_id)
+        except IndexError or KeyError as err:
+            print(err)
+            return False
+        if co_role_removed:
+            # remove cou to fabric_roles table
+            command = """
+            DELETE FROM fabric_roles
+            WHERE people_id = {0} AND role_name = '{1}';
+            """.format(int(people_id), project_cou_po)
+            run_sql_commands(command)
+        else:
+            print('[INFO] error at: comanage_projects_remove_creators(project_uuid, project_creators)')
+
+    return True
+
+
 def comanage_add_new_cou(cou_name, cou_description):
     # ref: https://spaces.at.internet2.edu/display/COmanage/COU+API
     # example COU request object format:
@@ -279,7 +360,7 @@ def comanage_add_new_cou(cou_name, cou_description):
         else:
             response = requests.get(
                 url="https://registry-test.cilogon.org/registry/cous/{0}.json".format(new_cou.get('Id')),
-                params={'coid': CO_API_COID},
+                params={'coid': '{0}'.format(CO_API_COID)},
                 auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
             )
             if response.status_code == requests.codes.ok:
@@ -297,6 +378,7 @@ def comanage_remove_cou(cou_id):
     else:
         response = requests.delete(
             url="https://registry-test.cilogon.org/registry/cous/{0}.json".format(cou_id),
+            params={'coid': '{0}'.format(CO_API_COID)},
             auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
         )
         if response.status_code == requests.codes.ok:
@@ -360,6 +442,7 @@ def comanage_remove_users_from_cou(role_id):
     else:
         response = requests.delete(
             url='https://registry-test.cilogon.org/registry/co_person_roles/{0}.json'.format(str(role_id)),
+            params={'coid': '{0}'.format(CO_API_COID)},
             auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
         )
         if response.status_code == requests.codes.ok:

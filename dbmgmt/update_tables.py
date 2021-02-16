@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import re
+import os
 from configparser import ConfigParser
 from pprint import pprint
 from uuid import uuid4
@@ -106,6 +107,8 @@ def update_comanage_cou_data():
         if response.status_code == requests.codes.ok:
             data = response.json()
         else:
+            print("[ERROR] unable to get 'Cous' from COmanage")
+            print("[ERROR] " + str(response))
             data = {'Cous': []}
     # update comanage_cous table based on findings
     sql_list = []
@@ -146,7 +149,8 @@ def update_comanage_people_data():
         if response.status_code == requests.codes.ok:
             people_data = response.json()
         else:
-            print(response)
+            print("[ERROR] unable to get 'CoPeople' from COmanage")
+            print("[ERROR] " + str(response))
             people_data = {'CoPeople': []}
     # update project_people table based on findings
     for person in people_data['CoPeople']:
@@ -169,7 +173,8 @@ def update_comanage_people_data():
                 if response.status_code == requests.codes.ok:
                     name_data = response.json()
                 else:
-                    print(response)
+                    print("[ERROR] unable to get 'Names' from COmanage")
+                    print("[ERROR] " + str(response))
                     name_data = {'Names': [{'Given': '', 'Middle': '', 'Family': '', 'Suffix': ''}]}
             # get email
             if config.getboolean('mock', 'data'):
@@ -189,7 +194,8 @@ def update_comanage_people_data():
                 if response.status_code == requests.codes.ok:
                     email_data = response.json()
                 else:
-                    print(response)
+                    print("[ERROR] unable to get 'EmailAddresses' from COmanage")
+                    print("[ERROR] " + str(response))
                     email_data = {'EmailAddresses': [{'Mail': ''}]}
             # set person attributes for database
             co_id = person['CoId']
@@ -290,17 +296,33 @@ def update_projects_data():
     temp_list = []
     for cou in cous:
         match = re.search("([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})", cou.get('name'))
-        if match and cou.get('name')[-3:] == '-po':
+        if match and cou.get('name')[-3:] == '-pc':
             temp_list.append({'name': match[0], 'desc': cou.get('desc'), 'created_date': cou.get('created_date')})
     pprint(temp_list)
     cou_set = temp_list.copy()
     for cou in cou_set:
+        print("#########")
+        print(cou)
+        sql = """
+        SELECT fabric_people.uuid
+        FROM fabric_people INNER JOIN fabric_roles
+        ON fabric_people.id = fabric_roles.people_id
+        WHERE fabric_roles.role_name = '{0}'
+        """.format(cou.get('name') + '-pc')
+        try:
+            dfq = dict_from_query(sql)
+            print(dfq)
+            created_by = dfq[0].get('uuid')
+        except KeyError or IndexError as err:
+            print(err)
+            created_by = DEFAULT_CREATED_BY
+        print(created_by)
         command = """
         INSERT INTO fabric_projects(uuid, name, description, facility, created_by, created_time)
         VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}')
         ON CONFLICT ON CONSTRAINT projects_uuid
         DO NOTHING;
-        """.format(cou.get('name'), cou.get('desc'), DEFAULT_DESCRIPTION, DEFAULT_FACILITY, DEFAULT_CREATED_BY,
+        """.format(cou.get('name'), cou.get('desc'), DEFAULT_DESCRIPTION, DEFAULT_FACILITY, created_by,
                    cou.get('created_date'))
         sql_list.append(command)
     commands = tuple(i for i in sql_list)
@@ -406,4 +428,12 @@ if __name__ == '__main__':
     update_comanage_cou_data()
     insert_default_user()
     update_comanage_people_data()
+    response = requests.get(
+        url="https://127.0.0.1:8443/people",
+        verify=False,
+        cookies={
+            'fabric-service': 'H4sIAAAAAAAA_3yVXZOruBGGf1G2-Bic4fLYBgzHkgehD9AdQhwDkkAz9tjAr0_h7J5KVTa5bJru93m7VdXtknUiafpLn6VkTV3Yp7d0REFzSHepsiU9ZOEf7ZK5jUcXYeI7L9JdOkKHs_jGS_1DsmA4G6pkkd5SBd3GRw9B4K1i-t4s6W4TkCzfBIaazQ_uhd-XPhxEorUY0a-a5Q-4wr4ayBOs1-XCuLlg3vGjci5J5QCWzvzYaWCipcKkPx8yLVhsxeH_cBjeCaZvLQ2_K-bqdJh64iNdsVm3r7y00tDv0gs6wcjGBmsGp4rRW9o_-7qE61ZTn5DTnMDuvIS_2c8mXPiy9fib2vgvHrVxrpKlW36SJ_S89O-PytM34cmH6INHY5rHNlNp6JIX4Wu-zfK-wGM6X47RVu8I766FDi3fvJrOkaf9-nd9hBe7MrkuZ08rmoRfnL094LBXFctMhdUMjuAJDe-giXyQVCsYrgE0cIBD5MLh-gC4msGaz3AFy-UIHFBk4fmQ5TmDAy_h-mfP316adXqcPWhFEo7Ce_sWfjaevbCTJZpAH3aVB3XjQ_Li798dyOIeJPkCsVbgWC3g-GPmCZjBcHUgTn3oEQ-w3IHF-wyHaIXHyAdr-gYH8rbtg0S_fW0MuiXTk9NuX5PQFurOAI0tjuDPxsQlYfqjJjrAChW5435iHBe1tkfM7ISUuyNlB1HSxZiifRtnFCl0aZWzYHaHIM5wUcJMEL6yUWdQ6VuhEaw1WQr29jwbGhRm7qnDn5WCW_4bD_uaOnxlurvlDJWQWSAo_-IxzBpH3_lprwTlLjumbp1kJX3x2UtF5UW4uqQjzOpSWmbcRCZx2R5pBQY6VVrSlz-NFHL5VCnJINFWeroXhDtMv_S_QLnnwHQT09LnLlmJmTn1uxun_9YXJzu0RHkFcyeQoDQf7UeNO4_h7NZ46cJPvK8x9SrPHWoyH4vRKupoiz39U3goJaP8n_9LAxY66s1fQCgIAHvFQ4u7bf5ZG4URYhrkjp14LNHLj7Ed9TuPDWkgSWgvzPbIm2-VCQq-7a_kl1YFljFLpePuuK8_qGvv2EV1HduoXvcfyFVPTGXWbnEyQ0FowCiiL_5h34MR3SrzDJrYHgvMM8GuTx51h1aF9nLiHJh5rYZMSZNZWPJBMOhVQ5YAhk7c1wCY-YuqJmi0LeGJX2qVfTEqfwqqSe13EEWuj41b11FwRxhC5OodZnaEJLhjYy-1IjM2dpTKJazsYKvjNzxa2JIwwngPiaPXgrkvvTrhCnnzX_v8RDiDNHKemKKhVe5n5b3md-Pk9d7_Mz-2xP3kPswEmycebfX_pZeCQ3AQjlvCIY7amHdFnB2IY6fKWIao7XI1j_i4t7UTMEEzB5vuwGgaMBrmTGXflda6jVAvkkzVCh7OFD046_pWT6507heRyAzr-CsnliNKWYX3T-Qgcy7jXxXTEyThDpKnV8f7iJ64Lt3cqVzrSk0flzIKOAU-cGGEVz0wzL-EambgSSbLmCAf3HMnxMKZnFrHe3oiM07iiZaZ5vrqc7fryUh3MOl8qfRnm9gFajpiHHm43BNUZnmNsw9E43Pl_vDBihYSdSMYry5m2akdERDH_ZkO_GeNtYsHPjYJmbEKPeFmfaXDIyuhbiK7KwxnOXnesaM7wfIAEnqmJqzpSVKmwl_1ECPC5opEgRHHOGqPMpFJFrUHxy9iu9Rkxk2SOtTEFWPB1JZ2BWUVUPfHLCM6Vc71Xg-oRITfC52dkOYEKx0DCj2Gm7nRr5vw5y1NZzA03-Dw9jwPr--6Pf3oL0PkAQwcsEY-GK631Oh1u8Gp5g_J4JSOzh9fn47zLv_5ket_fMvdW9b-4ggT805BPr7TW5IMPfisb2HrP_8VAAD__3Z-cUscCAAA'
+        }
+    )
+    print(response)
     update_projects_data()

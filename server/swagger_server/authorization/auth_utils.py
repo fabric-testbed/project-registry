@@ -46,13 +46,16 @@ def auth_utils_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
     SELECT id from fabric_people WHERE oidc_claim_sub = '{0}'
     """.format(oidc_claim_sub)
     dfq = dict_from_query(sql)
-    try:
-        people_id = dfq[0].get('id')
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        # user not found within COmanage - return default user
-        api_user = auth_utils_oidc_claim_sub_get(config.get('default-user', 'oidc_claim_sub'))
-        return api_user
+    if dfq:
+        try:
+            people_id = dfq[0].get('id')
+        except IndexError or KeyError or TypeError as err:
+            print(err)
+            # user not found within COmanage - return default user
+            api_user = auth_utils_oidc_claim_sub_get(config.get('default-user', 'oidc_claim_sub'))
+            return api_user
+    else:
+        return None
 
     # get person attributes
     sql_person = """

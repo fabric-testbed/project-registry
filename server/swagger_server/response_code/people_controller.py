@@ -65,12 +65,13 @@ def people_get(person_name=None):  # noqa: E501
     dfq = dict_from_query(sql)
 
     # construct response object
-    for person in dfq:
-        ps = PeopleShort()
-        ps.email = person.get('email')
-        ps.name = person.get('name')
-        ps.uuid = person.get('uuid')
-        response.append(ps)
+    if dfq:
+        for person in dfq:
+            ps = PeopleShort()
+            ps.email = person.get('email')
+            ps.name = person.get('name')
+            ps.uuid = person.get('uuid')
+            response.append(ps)
 
     return response
 

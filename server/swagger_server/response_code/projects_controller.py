@@ -22,7 +22,7 @@ from ..authorization.projects import filter_projects_get, authorize_projects_add
     authorize_projects_uuid_get, DEFAULT_USER_UUID
 from ..comanage_api.comanage_api import comanage_projects_add_members_put, comanage_projects_add_owners_put, \
     comanage_projects_remove_members_put, comanage_projects_remove_owners_put, comanage_projects_create_post, \
-    comanage_projects_delete_delete
+    comanage_projects_add_creator_put, comanage_projects_delete_delete, comanage_projects_remove_creators
 
 config = ConfigParser()
 config.read('swagger_server/config/config.ini')
@@ -349,6 +349,11 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
         return 'Unable to create project: {0}'.format(str(uuid)), 500, \
                {'X-Error': 'Unable to create project in COmanage'}
 
+    # add projects creator to comanage uuid-pc group
+    if not comanage_projects_add_creator_put(project_uuid, [created_by]):
+        return 'Unable to add creator: {0}'.format(str(uuid)), 500, \
+               {'X-Error': 'Unable to add creator in COmanage'}
+
     # add projects owners to comanage uuid-po group
     if not comanage_projects_add_owners_put(project_uuid, project_owners_new):
         return 'Unable to add owners: {0}'.format(str(uuid)), 500, \
@@ -465,40 +470,58 @@ def projects_delete_delete(uuid):  # noqa: E501
 
     sql_list = []
 
-    # TODO: get list of project_owners
+    # remove project creator from COU uuid-pc
     sql = """
     SELECT fabric_people.uuid
-    FROM fabric_people INNER JOIN project_owners
-    ON fabric_people.id = project_owners.people_id
-    WHERE project_owners.projects_id = {0};
-    """.format(int(project_id))
+    FROM fabric_people INNER JOIN fabric_roles
+    ON fabric_people.id = fabric_roles.people_id
+    WHERE fabric_roles.role_name = '{0}';
+    """.format(str(uuid) + '-pc')
+    dfq = dict_from_query(sql)
+    project_creators = []
+    if dfq:
+        for member in dfq:
+            project_creators.append(member.get('uuid'))
+        if not comanage_projects_remove_creators(uuid, project_creators):
+            return 'Unable to remove creators: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to remove project creator in COmanage'}
+
+    # remove project_owners from COU uuid-po
+    sql = """
+    SELECT fabric_people.uuid
+    FROM fabric_people INNER JOIN fabric_roles
+    ON fabric_people.id = fabric_roles.people_id
+    WHERE fabric_roles.role_name = '{0}';
+    """.format(str(uuid) + '-po')
     dfq = dict_from_query(sql)
     project_owners = []
-    for member in dfq:
-        project_owners.append(member.get('uuid'))
-    if not comanage_projects_remove_owners_put(uuid, project_owners):
-        return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
-               {'X-Error': 'Unable to remove owners in COmanage'}
+    if dfq:
+        for member in dfq:
+            project_owners.append(member.get('uuid'))
+        if not comanage_projects_remove_owners_put(uuid, project_owners):
+            return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to remove owners in COmanage'}
 
-    # TODO: get list of project_members
+    # remove projects_members from COU uuid-pm
     sql = """
     SELECT fabric_people.uuid
-    FROM fabric_people INNER JOIN project_members
-    ON fabric_people.id = project_members.people_id
-    WHERE project_members.projects_id = {0};
-    """.format(int(project_id))
+    FROM fabric_people INNER JOIN fabric_roles
+    ON fabric_people.id = fabric_roles.people_id
+    WHERE fabric_roles.role_name = '{0}';
+    """.format(str(uuid) + '-pm')
     dfq = dict_from_query(sql)
     project_members = []
-    for member in dfq:
-        project_members.append(member.get('uuid'))
-    if not comanage_projects_remove_members_put(uuid, project_members):
-        return 'Unable to remove members: {0}'.format(str(uuid)), 501, \
-               {'X-Error': 'Unable to remove members in COmanage'}
+    if dfq:
+        for member in dfq:
+            project_members.append(member.get('uuid'))
+        if not comanage_projects_remove_members_put(uuid, project_members):
+            return 'Unable to remove members: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to remove members in COmanage'}
 
-    # TODO:
-    if not comanage_projects_delete_delete(uuid):
-        return 'Unable to delete project COUs: {0}'.format(str(uuid)), 501, \
-               {'X-Error': 'Unable to delete project in COmanage'}
+        # remove project COU uuid-pc, uuid-po, uuid-pm
+        if not comanage_projects_delete_delete(uuid):
+            return 'Unable to delete project COUs: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to delete project in COmanage'}
 
     # project owners
     sql = """
@@ -568,24 +591,25 @@ def projects_get(project_name=None):  # noqa: E501
     dfq = dict_from_query(sql)
 
     # construct response object
-    for project in dfq:
-        # project object
-        ps = ProjectShort()
+    if dfq:
+        for project in dfq:
+            # project object
+            ps = ProjectShort()
 
-        # project created by
-        pc = people_uuid_get(project.get('created_by'))
-        try:
-            created_by = {'uuid': pc.uuid, 'name': pc.name, 'email': pc.email}
-        except AttributeError:
-            created_by = {'uuid': DEFAULT_USER_UUID, 'name': DEFAULT_USER_NAME, 'email': DEFAULT_USER_EMAIL}
+            # project created by
+            pc = people_uuid_get(project.get('created_by'))
+            try:
+                created_by = {'uuid': pc.uuid, 'name': pc.name, 'email': pc.email}
+            except AttributeError:
+                created_by = {'uuid': DEFAULT_USER_UUID, 'name': DEFAULT_USER_NAME, 'email': DEFAULT_USER_EMAIL}
 
-        ps.name = project.get('name')
-        ps.description = project.get('description')
-        ps.facility = project.get('facility')
-        ps.uuid = project.get('uuid')
-        ps.created_by = created_by
-        ps.created_time = project.get('created_time')
-        response.append(ps)
+            ps.name = project.get('name')
+            ps.description = project.get('description')
+            ps.facility = project.get('facility')
+            ps.uuid = project.get('uuid')
+            ps.created_by = created_by
+            ps.created_time = project.get('created_time')
+            response.append(ps)
 
     return filter_projects_get(request.headers, response)
 

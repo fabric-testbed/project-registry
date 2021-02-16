@@ -145,7 +145,7 @@ def authorize_projects_get(headers):
 
 def filter_projects_get(headers, response):
     # get api_user
-    api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
+    # api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
     return response
 
 
