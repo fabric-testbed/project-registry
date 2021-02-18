@@ -448,5 +448,253 @@ def comanage_remove_users_from_cou(role_id):
         if response.status_code == requests.codes.ok:
             return True
         else:
-            print(response)
+            print("[ERROR] " + str(response))
             return False
+
+
+def comanage_check_for_new_users():
+    # set empty co_person_id arrays
+    db_co_person_ids = []
+    co_co_person_ids = []
+    # get co_person_id list from database
+    sql = """
+    SELECT co_person_id FROM fabric_people
+    WHERE co_person_id != 0;
+    """
+    dfq = dict_from_query(sql)
+    try:
+        for cp_id in dfq:
+            db_co_person_ids.append(cp_id.get('co_person_id'))
+    except IndexError or KeyError as err:
+        print(err)
+    # get co_person_id list from comanage
+    response = requests.get(
+        url='https://registry-test.cilogon.org/registry/co_people.json',
+        params={'coid': '{0}'.format(CO_API_COID)},
+        auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
+    )
+    if response.status_code == requests.codes.ok:
+        json_data = response.json()
+        for entry in json_data['CoPeople']:
+            co_co_person_ids.append(int(entry['Id']))
+    else:
+        print("[ERROR] " + str(response))
+        return False
+
+    print('COPerson IDs Local   :' + str(db_co_person_ids))
+    print('COPerson IDs COmanage:' + str(co_co_person_ids))
+    # for co_person_id from comanage not in database, attempt to create new user entry
+    for cp_id in co_co_person_ids:
+        if cp_id not in db_co_person_ids:
+            # check if co_person_id should be created as new user, or update an existing user
+            if not comanage_create_update_user_in_database(cp_id):
+                return False
+
+    # for co_person_id from updated database not in comanage, purge from database
+    db_co_person_ids = []
+    dfq = dict_from_query(sql)
+    try:
+        for cp_id in dfq:
+            db_co_person_ids.append(cp_id.get('co_person_id'))
+    except IndexError or KeyError as err:
+        print(err)
+    for cp_id in db_co_person_ids:
+        if cp_id not in co_co_person_ids:
+            # check if co_person_id has been orphaned
+            comanage_remove_orphaned_user_from_database(cp_id)
+        pass
+
+    return True
+
+
+def comanage_create_update_user_in_database(co_person_id):
+    print('[INFO] comanage_create_update_user_in_database( co_person_id={0} )'.format(str(co_person_id)))
+    # get co_person email information
+    co_email = ''
+    response = requests.get(
+        url='https://registry-test.cilogon.org/registry/email_addresses.json',
+        params={
+            'copersonid': '{0}'.format(co_person_id),
+            'coid': '{0}'.format(CO_API_COID)},
+        auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
+    )
+    if response.status_code == requests.codes.ok:
+        json_data = response.json()
+        co_email = json_data['EmailAddresses'][0]['Mail']
+        pprint(co_email)
+    else:
+        print("[ERROR] " + str(response))
+        return False
+
+    # check if co_person email exists as different co_person_id, update if true
+    sql = """
+    SELECT id FROM fabric_people
+    WHERE email = '{0}';
+    """.format(co_email)
+    person_id = -1
+    try:
+        dfq = dict_from_query(sql)
+        if dfq:
+            person_id = dfq[0].get('id')
+    except KeyError or IndexError as err:
+        print(err)
+
+    if person_id != -1:
+        sql = """
+        UPDATE fabric_people
+        SET co_person_id = {0}
+        WHERE email = '{1}';
+        """.format(int(co_person_id), str(co_email))
+        run_sql_commands(sql)
+    else:
+        # person
+        response = requests.get(
+            url='https://registry-test.cilogon.org/registry/co_people/{0}.json'.format(co_person_id),
+            params={'coid': CO_API_COID},
+            auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
+        )
+        if response.status_code == requests.codes.ok:
+            people_data = response.json()
+        else:
+            print("[ERROR] unable to get 'CoPeople' from COmanage")
+            print("[ERROR] " + str(response))
+            people_data = {'CoPeople': []}
+        person = people_data['CoPeople'][0]
+
+        # name
+        response = requests.get(
+            url='https://registry-test.cilogon.org/registry/names.json',
+            params={'copersonid': '{0}'.format(co_person_id), 'coid': CO_API_COID},
+            auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
+        )
+        if response.status_code == requests.codes.ok:
+            name_data = response.json()
+        else:
+            print("[ERROR] unable to get 'Names' from COmanage")
+            print("[ERROR] " + str(response))
+            name_data = {'Names': [{'Given': '', 'Middle': '', 'Family': '', 'Suffix': ''}]}
+
+        # get email
+        email_data = {'EmailAddresses': [{'Mail': '{0}'.format(co_email)}]}
+
+        # set person attributes for database
+        co_id = person['CoId']
+        co_person_id = person['Id']
+        co_status = person['Status']
+        email = email_data['EmailAddresses'][0]['Mail']
+        name = name_data['Names'][0]['Given']
+        if name_data['Names'][0]['Middle']:
+            name = name + ' ' + name_data['Names'][0]['Middle']
+        if name_data['Names'][0]['Family']:
+            name = name + ' ' + name_data['Names'][0]['Family']
+        if name_data['Names'][0]['Suffix']:
+            name = name + ', ' + name_data['Names'][0]['Suffix']
+        oidc_claim_sub = person['ActorIdentifier']
+        uuid = ''
+        # SQL command
+        command = """
+        INSERT INTO fabric_people(co_id, co_person_id, co_status, email, name, oidc_claim_sub, uuid)
+        VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}')
+        ON CONFLICT ON CONSTRAINT actor_identifier_duplicate
+        DO NOTHING;
+        """.format(co_id, co_person_id, co_status, email, name, oidc_claim_sub, uuid)
+        print("[INFO] attempt to load co_person data: " + name)
+        run_sql_commands(command)
+        sql = """
+        SELECT id FROM fabric_people
+        WHERE email = '{0}';
+        """.format(co_email)
+        person_id = -1
+        try:
+            dfq = dict_from_query(sql)
+            if dfq:
+                person_id = dfq[0].get('id')
+        except KeyError or IndexError as err:
+            print(err)
+        comanage_update_co_person_cou_links(co_person_id, person_id)
+
+    return True
+
+
+def comanage_update_co_person_cou_links(co_person_id, people_id):
+    # get roles
+    response = requests.get(
+        url='https://registry-test.cilogon.org/registry/co_person_roles.json',
+        params={'copersonid': co_person_id, 'coid': CO_API_COID},
+        auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
+    )
+    if response.status_code == requests.codes.ok:
+        role_data = response.json()
+    else:
+        print(response)
+        role_data = {'CoPersonRoles': []}
+
+    # get fabric_people id
+    sql = """
+    SELECT id from fabric_people WHERE co_person_id = '{0}'
+    """.format(co_person_id)
+
+    # dfq = dict_from_query(sql)
+    # people_id = dfq[0].get('id')
+
+    sql_list = []
+    for role in role_data['CoPersonRoles']:
+        # pprint(role)
+        try:
+            role_id = role['Id']
+            # get comanage_cous id and name
+            sql = """
+            SELECT id, name from comanage_cous WHERE cou_id = '{0}'
+            """.format(role['CouId'])
+            dfq = dict_from_query(sql)
+            co_cou_id = dfq[0].get('id')
+            co_role_name = dfq[0].get('name')
+            command = """
+            INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
+            VALUES ({0}, {1}, '{2}', {3})
+            ON CONFLICT ON CONSTRAINT fabric_role_duplicate
+            DO NOTHING;
+            """.format(int(co_cou_id), int(people_id), co_role_name, int(role_id))
+            sql_list.append(command)
+        except KeyError:
+            pass
+    commands = tuple(i for i in sql_list)
+    print("[INFO] attempt to load roles:")
+    run_sql_commands(commands)
+
+
+def comanage_remove_orphaned_user_from_database(co_person_id):
+    print('[INFO] comanage_remove_orphaned_user_from_database( co_person_id={0} )'.format(str(co_person_id)))
+    sql = """
+    SELECT id FROM fabric_people
+    WHERE co_person_id = {0};
+    """.format(int(co_person_id))
+    person_id = -1
+    try:
+        dfq = dict_from_query(sql)
+        if dfq:
+            person_id = dfq[0].get('id')
+    except KeyError or IndexError as err:
+        print(err)
+        return False
+
+    sql_list = []
+    # remove from fabric_roles
+    command = """
+    DELETE FROM fabric_roles
+    WHERE people_id = {0};
+    """.format(int(person_id))
+    sql_list.append(command)
+
+    # remove from fabric_people
+    command = """
+    DELETE FROM fabric_people
+    WHERE co_person_id = {0};
+    """.format(int(co_person_id))
+    sql_list.append(command)
+
+    commands = tuple(i for i in sql_list)
+    print("[INFO] attempt to remove orphaned user from database")
+    run_sql_commands(commands)
+
+    return True

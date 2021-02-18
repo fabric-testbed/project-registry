@@ -9,6 +9,7 @@ from . import DEFAULT_USER_UUID
 from .utils import dict_from_query, resolve_empty_people_uuid
 from ..authorization.people import authorize_people_get, authorize_people_oidc_claim_sub_get, \
     authorize_people_uuid_get
+from ..comanage_api.comanage_api import comanage_check_for_new_users
 
 config = ConfigParser()
 config.read('swagger_server/config/config.ini')
@@ -34,6 +35,11 @@ def people_get(person_name=None):  # noqa: E501
     if not authorize_people_get(request.headers):
         return 'Authorization information is missing or invalid: /people', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+
+    # check for new comanage users
+    if not comanage_check_for_new_users():
+        return 'COmanage Error - Unable to retrieve co_people data', 500, \
+               {'X-Error': 'Unable to retrieve co_people data'}
 
     # resolve any missing people uuids
     resolve_empty_people_uuid()

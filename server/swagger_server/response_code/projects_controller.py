@@ -22,7 +22,8 @@ from ..authorization.projects import filter_projects_get, authorize_projects_add
     authorize_projects_uuid_get, DEFAULT_USER_UUID
 from ..comanage_api.comanage_api import comanage_projects_add_members_put, comanage_projects_add_owners_put, \
     comanage_projects_remove_members_put, comanage_projects_remove_owners_put, comanage_projects_create_post, \
-    comanage_projects_add_creator_put, comanage_projects_delete_delete, comanage_projects_remove_creators
+    comanage_projects_add_creator_put, comanage_projects_delete_delete, comanage_projects_remove_creators, \
+    comanage_check_for_new_users
 
 config = ConfigParser()
 config.read('swagger_server/config/config.ini')
@@ -50,6 +51,11 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     if not authorize_projects_add_members_put(request.headers, uuid, created_by):
         return 'Authorization required for: /projects/add_members', 401, \
                {'X-Error': 'Authorization is missing or invalid'}
+
+    # check for new comanage users
+    if not comanage_check_for_new_users():
+        return 'COmanage Error - Unable to retrieve co_people data', 500, \
+               {'X-Error': 'Unable to retrieve co_people data'}
 
     # attempt to resolve any missing people uuids
     resolve_empty_people_uuid()
@@ -140,6 +146,11 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
     if not authorize_projects_add_owners_put(request.headers, created_by):
         return 'Authorization information is missing or invalid: /projects/add_owners', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+
+    # check for new comanage users
+    if not comanage_check_for_new_users():
+        return 'COmanage Error - Unable to retrieve co_people data', 500, \
+               {'X-Error': 'Unable to retrieve co_people data'}
 
     # resolve any missing people uuids
     resolve_empty_people_uuid()
@@ -245,6 +256,14 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
         return 'Authorization information is missing or invalid: /projects/add_tags', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
 
+    # check for new comanage users
+    if not comanage_check_for_new_users():
+        return 'COmanage Error - Unable to retrieve co_people data', 500, \
+               {'X-Error': 'Unable to retrieve co_people data'}
+
+    # resolve any missing people uuids
+    resolve_empty_people_uuid()
+
     if tags:
         for tag in tags:
             if len(tag) > 0:
@@ -296,6 +315,11 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     if not authorize_projects_create_post(request.headers):
         return 'Authorization information is missing or invalid: /projects/create', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
+
+    # check for new comanage users
+    if not comanage_check_for_new_users():
+        return 'COmanage Error - Unable to retrieve co_people data', 500, \
+               {'X-Error': 'Unable to retrieve co_people data'}
 
     # resolve any missing people uuids
     resolve_empty_people_uuid()
