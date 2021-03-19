@@ -25,13 +25,16 @@ fi
 
 # install packages from requirements file
 source venv/bin/activate
+pip install -U pip
 echo "[INFO] install requirements.txt"
 pip install -r requirements.txt
 
 # create database tables and load
 cd ../dbmgmt
+# drop and create all database tables
 python drop_create_tables.py
-python load_initial_data.py
+# now run as a separate script after the project-registry is running since in needs to hit the /people endpoint
+#python update_tables.py
 
 # run production server using uwsgi
 cd ../server

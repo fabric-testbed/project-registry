@@ -27,6 +27,7 @@ if [[ "$1" = 'run_server' ]]; then
 
     # setup virtual environment
     export PYTHONPATH=$(pwd)
+    pip install -U pip
     pip install virtualenv
     virtualenv .venv
     source .venv/bin/activate

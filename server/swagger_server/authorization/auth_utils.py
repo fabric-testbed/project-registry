@@ -1,3 +1,4 @@
+import re
 from configparser import ConfigParser
 
 from jwt import decode
@@ -7,20 +8,31 @@ from ..models.people_long import PeopleLong
 config = ConfigParser()
 config.read('swagger_server/config/config.ini')
 
+fabric_cou_set = {
+    config.get('fabric-cou', 'fabric_active_users'),
+    config.get('fabric-cou', 'facility_operators'),
+    config.get('fabric-cou', 'project_leads')
+}
+
+# set default user uuid flag
+DEFAULT_USER_OIDC_CLAIM_SUB = config.get('default-user', 'oidc_claim_sub')
+
 
 def get_api_person(x_vouch_idp_idtoken):
     api_user = PeopleLong()
-    if str(config['mock']['data']).lower() == 'true':
-        api_user = auth_utils_oidc_claim_sub_get(config['default-user']['oidc_claim_sub'])
+    if config.getboolean('mock', 'data'):
+        api_user = auth_utils_oidc_claim_sub_get(DEFAULT_USER_OIDC_CLAIM_SUB)
     elif x_vouch_idp_idtoken:
+        # print(x_vouch_idp_idtoken)
         decoded = decode(x_vouch_idp_idtoken, verify=False)
         try:
             api_user = auth_utils_oidc_claim_sub_get(decoded.get('sub'))
-        except IndexError:
+        except IndexError or KeyError or TypeError as err:
+            print(err)
             print('User not found')
     else:
-        api_user = auth_utils_oidc_claim_sub_get(config['default-user']['oidc_claim_sub'])
-
+        api_user = auth_utils_oidc_claim_sub_get(config.get('default-user', 'oidc_claim_sub'))
+    print('[INFO] Operating as: ' + str(api_user.name))
     return api_user
 
 
@@ -34,16 +46,20 @@ def auth_utils_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
     SELECT id from fabric_people WHERE oidc_claim_sub = '{0}'
     """.format(oidc_claim_sub)
     dfq = dict_from_query(sql)
-    try:
-        people_id = dfq[0].get('id')
-    except IndexError:
-        # user not found within COmanage - return default user
-        api_user = auth_utils_oidc_claim_sub_get(config['default-user']['oidc_claim_sub'])
-        return api_user
+    if dfq:
+        try:
+            people_id = dfq[0].get('id')
+        except IndexError or KeyError or TypeError as err:
+            print(err)
+            # user not found within COmanage - return default user
+            api_user = auth_utils_oidc_claim_sub_get(config.get('default-user', 'oidc_claim_sub'))
+            return api_user
+    else:
+        return None
 
     # get person attributes
     sql_person = """
-    SELECT oidc_claim_sub, email, eppn, name, uuid from fabric_people
+    SELECT oidc_claim_sub, email, name, uuid from fabric_people
     WHERE id = '{0}';
     """.format(people_id)
     person = dict_from_query(sql_person)[0]
@@ -51,12 +67,15 @@ def auth_utils_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
     # get roles
     roles = []
     sql_roles = """
-    SELECT role from roles
+    SELECT role_name from fabric_roles
     WHERE people_id = '{0}';
     """.format(people_id)
     dfq = dict_from_query(sql_roles)
     for role in dfq:
-        roles.append(role['role'])
+        is_pr_role = role['role_name'] in fabric_cou_set or re.search(
+            "([0-9|a-f]{8}-(?:[0-9|a-f]{4}-){3}[0-9|a-f]{12})", role['role_name'])
+        if is_pr_role:
+            roles.append(role['role_name'])
 
     # get projects
     projects = []

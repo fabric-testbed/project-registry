@@ -1,9 +1,10 @@
 configparser
 connexion
+cryptography
 flask-sqlalchemy
 ldap3
 psycopg2-binary
-PyJWT
+PyJWT==1.7.1
 python_dateutil
 pytz
 swagger-ui-bundle

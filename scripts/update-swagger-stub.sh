@@ -11,15 +11,15 @@ FILES_TO_COPY=(
   requirements.txt
   swagger_server/__main__.py
   swagger_server/__init__.py
-  swagger_server/config/config.py
   wsgi.py
 )
 
 DIRS_TO_COPY=(
-  swagger_server/auth
-  swagger_server/database
+  swagger_server/authorization
+  swagger_server/comanage_api
   swagger_server/config
   swagger_server/response_code
+  swagger_server/uis_api
   config
 )
 

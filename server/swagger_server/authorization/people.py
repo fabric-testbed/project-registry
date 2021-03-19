@@ -1,11 +1,21 @@
-from . import FACILITY_OPERATORS, DEFAULT_USER_UUID, MOCK_DATA
+from configparser import ConfigParser
+
 from .auth_utils import get_api_person
+
+config = ConfigParser()
+config.read('swagger_server/config/config.ini')
+
+# set authorization level COUs
+FACILITY_OPERATORS = config.get('fabric-cou', 'facility_operators')
+
+# set default user uuid flag
+DEFAULT_USER_UUID = config.get('default-user', 'uuid')
 
 
 def authorize_people_get(headers):
     # TODO: check if any authorization is required here at all
     # allow mock data to pass
-    if str(MOCK_DATA).lower() == 'true':
+    if config.getboolean('mock', 'data'):
         return True
     # get api_user
     api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))

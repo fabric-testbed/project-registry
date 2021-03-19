@@ -1,0 +1,179 @@
+[
+  {
+    "EmailAddresses": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000001",
+        "Created": "2020-01-31 20:55:35",
+        "Deleted": false,
+        "Id": "1729",
+        "Mail": "public@fabric-testbed.net",
+        "Modified": "2020-01-31 20:55:54",
+        "Person": {
+          "Id": "1",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Type": "official",
+        "Verified": true,
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "EmailAddresses",
+    "Version": "1.0"
+  },
+  {
+    "EmailAddresses": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/00000002",
+        "Created": "2020-02-03 17:37:52",
+        "Deleted": false,
+        "Id": "1752",
+        "Mail": "efuller@fabric-testbed.net",
+        "Modified": "2020-02-03 17:38:16",
+        "Person": {
+          "Id": "2",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Type": "official",
+        "Verified": true,
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "EmailAddresses",
+    "Version": "1.0"
+  },
+  {
+    "EmailAddresses": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/00000003",
+        "Created": "2020-02-11 13:49:22",
+        "Deleted": false,
+        "Id": "1866",
+        "Mail": "ktheory@fabric-testbed.net",
+        "Modified": "2020-02-11 13:49:52",
+        "Person": {
+          "Id": "3",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Type": "official",
+        "Verified": true,
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "EmailAddresses",
+    "Version": "1.0"
+  },
+  {
+    "EmailAddresses": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/00000004",
+        "Created": "2020-09-02 18:50:40",
+        "Deleted": false,
+        "Id": "2415",
+        "Mail": "yolanda@fabric-testbed.net",
+        "Modified": "2020-09-02 18:50:54",
+        "Person": {
+          "Id": "4",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Type": "official",
+        "Verified": true,
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "EmailAddresses",
+    "Version": "1.0"
+  },
+  {
+    "EmailAddresses": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/000005",
+        "Created": "2020-09-11 20:43:09",
+        "Deleted": false,
+        "Id": "2446",
+        "Mail": "mj@fabric-testbed.net",
+        "Modified": "2020-09-11 20:44:27",
+        "Person": {
+          "Id": "5",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Type": "official",
+        "Verified": true,
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "EmailAddresses",
+    "Version": "1.0"
+  },
+  {
+    "EmailAddresses": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/00000006",
+        "Created": "2020-10-02 15:38:37",
+        "Deleted": false,
+        "Id": "2513",
+        "Mail": "chuck.todd@fabric-testbed.net",
+        "Modified": "2020-10-02 15:39:04",
+        "Person": {
+          "Id": "6",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Type": "official",
+        "Verified": true,
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "EmailAddresses",
+    "Version": "1.0"
+  },
+  {
+    "EmailAddresses": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverA/users/00000006",
+        "Created": "2020-10-19 19:36:35",
+        "Deleted": false,
+        "Description": "",
+        "Id": "2575",
+        "Mail": "x_chuck.todd@fabric-testbed.net",
+        "Modified": "2020-10-20 15:39:01",
+        "Person": {
+          "Id": "7",
+          "Type": "CO"
+        },
+        "Revision": "2",
+        "Type": "official",
+        "Verified": false,
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "EmailAddresses",
+    "Version": "1.0"
+  },
+  {
+    "EmailAddresses": [
+      {
+        "ActorIdentifier": "http://cilogon.org/serverT/users/000008",
+        "Created": "2020-11-11 16:53:00",
+        "Deleted": false,
+        "Id": "2635",
+        "Mail": "ibruce@fabric-testbed.net",
+        "Modified": "2020-11-11 16:53:21",
+        "Person": {
+          "Id": "8",
+          "Type": "CO"
+        },
+        "Revision": "0",
+        "Type": "official",
+        "Verified": true,
+        "Version": "1.0"
+      }
+    ],
+    "ResponseType": "EmailAddresses",
+    "Version": "1.0"
+  }
+]
