@@ -9,12 +9,13 @@ from uuid import uuid4
 import psycopg2
 import requests
 from requests.auth import HTTPBasicAuth
-
 from drop_create_tables import Session
 
 ### FABRIC SERVICE COOKIE ###
 # everything after the "fabric-service=" part
 FS_COOKIE = 'PUT_YOUR_COOKIE_HERE'
+FS_DOMAIN = "127.0.0.1"
+FS_PORT = "8443"
 ### FABRIC SERVICE COOKIE ###
 
 config = ConfigParser()
@@ -442,7 +443,7 @@ if __name__ == '__main__':
     update_comanage_people_data()
     print("[INFO] ### QUERY PROJECT REGISTRY PEOPLE DATA ###")
     response = requests.get(
-        url="https://127.0.0.1:8443/people",
+        url="https://" + FS_DOMAIN + ":" + FS_PORT + "/people",
         verify=False,
         cookies={
             'fabric-service': FS_COOKIE
