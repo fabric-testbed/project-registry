@@ -42,7 +42,7 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
     :rtype: ProjectLong
     """
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(uuid)
+    project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}
@@ -137,7 +137,7 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
     :rtype: ProjectLong
     """
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(uuid)
+    project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}
@@ -244,7 +244,7 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
     :rtype: ProjectLong
     """
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(uuid)
+    project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}
@@ -363,7 +363,7 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
     run_sql_commands(sql)
 
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(str(project_uuid))
+    project_id, project_name, created_by = validate_project_reference(str(project_uuid))
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}
@@ -482,7 +482,7 @@ def projects_delete_delete(uuid):  # noqa: E501
     :rtype: None
     """
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(uuid)
+    project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}
@@ -492,41 +492,10 @@ def projects_delete_delete(uuid):  # noqa: E501
         return 'Authorization information is missing or invalid: /projects/delete', 401, \
                {'X-Error': 'Authorization information is missing or invalid'}
 
-    sql_list = []
-
-    # remove project creator from COU uuid-pc
-    sql = """
-    SELECT fabric_people.uuid
-    FROM fabric_people INNER JOIN fabric_roles
-    ON fabric_people.id = fabric_roles.people_id
-    WHERE fabric_roles.role_name = '{0}';
-    """.format(str(uuid) + '-pc')
-    dfq = dict_from_query(sql)
-    project_creators = []
-    if dfq:
-        for member in dfq:
-            project_creators.append(member.get('uuid'))
-        if not comanage_projects_remove_creators(uuid, project_creators):
-            return 'Unable to remove creators: {0}'.format(str(uuid)), 501, \
-                   {'X-Error': 'Unable to remove project creator in COmanage'}
-
-    # remove project_owners from COU uuid-po
-    sql = """
-    SELECT fabric_people.uuid
-    FROM fabric_people INNER JOIN fabric_roles
-    ON fabric_people.id = fabric_roles.people_id
-    WHERE fabric_roles.role_name = '{0}';
-    """.format(str(uuid) + '-po')
-    dfq = dict_from_query(sql)
-    project_owners = []
-    if dfq:
-        for member in dfq:
-            project_owners.append(member.get('uuid'))
-        if not comanage_projects_remove_owners_put(uuid, project_owners):
-            return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
-                   {'X-Error': 'Unable to remove owners in COmanage'}
+    print("[WARNING] Deleting project: {0} ({1})".format(str(uuid), project_name))
 
     # remove projects_members from COU uuid-pm
+    print("[WARNING] remove project members: {0}".format(str(uuid)))
     sql = """
     SELECT fabric_people.uuid
     FROM fabric_people INNER JOIN fabric_roles
@@ -541,43 +510,78 @@ def projects_delete_delete(uuid):  # noqa: E501
         if not comanage_projects_remove_members_put(uuid, project_members):
             return 'Unable to remove members: {0}'.format(str(uuid)), 501, \
                    {'X-Error': 'Unable to remove members in COmanage'}
+        else:
+            # remove project members
+            command = """
+            DELETE FROM project_members
+            WHERE project_members.projects_id = {0};
+            """.format(project_id)
+            run_sql_commands(command)
 
-        # remove project COU uuid-pc, uuid-po, uuid-pm
-        if not comanage_projects_delete_delete(uuid):
-            return 'Unable to delete project COUs: {0}'.format(str(uuid)), 501, \
-                   {'X-Error': 'Unable to delete project in COmanage'}
-
-    # project owners
+    # remove project_owners from COU uuid-po
+    print("[WARNING] remove project owners: {0}".format(str(uuid)))
     sql = """
-    DELETE FROM project_owners
-    WHERE project_owners.projects_id = {0};
-    """.format(project_id)
-    sql_list.append(sql)
+    SELECT fabric_people.uuid
+    FROM fabric_people INNER JOIN fabric_roles
+    ON fabric_people.id = fabric_roles.people_id
+    WHERE fabric_roles.role_name = '{0}';
+    """.format(str(uuid) + '-po')
+    dfq = dict_from_query(sql)
+    project_owners = []
+    if dfq:
+        for member in dfq:
+            project_owners.append(member.get('uuid'))
+        if not comanage_projects_remove_owners_put(uuid, project_owners):
+            return 'Unable to remove owners: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to remove owners in COmanage'}
+        else:
+            # remove project owners
+            command = """
+            DELETE FROM project_owners
+            WHERE project_owners.projects_id = {0};
+            """.format(project_id)
+            run_sql_commands(command)
 
-    # project members
+    # remove project creator from COU uuid-pc
+    print("[WARNING] remove project creator: {0}".format(str(uuid)))
     sql = """
-    DELETE FROM project_members
-    WHERE project_members.projects_id = {0};
-    """.format(project_id)
-    sql_list.append(sql)
+    SELECT fabric_people.uuid
+    FROM fabric_people INNER JOIN fabric_roles
+    ON fabric_people.id = fabric_roles.people_id
+    WHERE fabric_roles.role_name = '{0}';
+    """.format(str(uuid) + '-pc')
+    dfq = dict_from_query(sql)
+    project_creators = []
+    if dfq:
+        for member in dfq:
+            project_creators.append(member.get('uuid'))
+        print(project_creators)
+        if not comanage_projects_remove_creators(uuid, project_creators):
+            return 'Unable to remove creators: {0}'.format(str(uuid)), 501, \
+                   {'X-Error': 'Unable to remove project creator in COmanage'}
 
-    # tags
-    sql = """
+    # remove project tags
+    print("[WARNING] remove project tags: {0}".format(str(uuid)))
+    command = """
     DELETE FROM tags
     WHERE tags.projects_id = {0};
     """.format(project_id)
-    sql_list.append(sql)
+    run_sql_commands(command)
 
-    # project
-    sql = """
-    DELETE FROM fabric_projects
-    WHERE fabric_projects.uuid = '{0}';
-    """.format(uuid)
-    sql_list.append(sql)
+    # remove project COU uuid-pc, uuid-po, uuid-pm
+    print("[WARNING] remove project COUs: {0}".format(str(uuid)))
+    if not comanage_projects_delete_delete(uuid):
+        return 'Unable to delete project COUs: {0}'.format(str(uuid)), 501, \
+               {'X-Error': 'Unable to delete project in COmanage'}
+    else:
+        # remove project
+        command = """
+        DELETE FROM fabric_projects
+        WHERE fabric_projects.uuid = '{0}';
+        """.format(uuid)
+        run_sql_commands(command)
 
-    commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to remove all project data (owners, members, tags, project)")
-    run_sql_commands(commands)
+    print("[INFO] project successfully removed: {0}".format(str(uuid)))
 
     return {}
 
@@ -651,7 +655,7 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
     :rtype: ProjectLong
     """
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(uuid)
+    project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}
@@ -735,7 +739,7 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
     :rtype: ProjectLong
     """
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(uuid)
+    project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}
@@ -797,7 +801,7 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
     :rtype: ProjectLong
     """
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(uuid)
+    project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}
@@ -846,7 +850,7 @@ def projects_update_put(uuid, name=None, description=None, facility=None):  # no
     :rtype: ProjectLong
     """
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(uuid)
+    project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}
@@ -901,7 +905,7 @@ def projects_uuid_get(uuid):  # noqa: E501
     response = ProjectLong()
 
     # validate project reference as provided by uuid
-    project_id, created_by = validate_project_reference(uuid)
+    project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
         return 'Project UUID reference Not Found: {0}'.format(str(uuid)), 400, \
                {'X-Error': 'Project UUID Unknown'}

@@ -125,7 +125,7 @@ def people_uuid_get(uuid):  # noqa: E501
     :rtype: PeopleLong
     """
     # resolve any missing people uuids
-    resolve_empty_people_uuid()
+    # resolve_empty_people_uuid()
 
     # response as PeopleLong()
     response = PeopleLong()

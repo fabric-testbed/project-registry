@@ -44,16 +44,20 @@ def run_sql_commands(commands):
 
 def validate_project_reference(project_uuid):
     sql = """
-    SELECT id, created_by FROM fabric_projects WHERE uuid = '{0}';
+    SELECT id, name, created_by FROM fabric_projects WHERE uuid = '{0}';
     """.format(project_uuid)
     dfq = dict_from_query(sql)
-    try:
-        project_id = dfq[0].get('id')
-        created_by = dfq[0].get('created_by')
-        return project_id, created_by
-    except IndexError or KeyError or TypeError as err:
-        print(err)
-        return -1, -1
+    if dfq:
+        try:
+            project_id = dfq[0].get('id')
+            project_name = dfq[0].get('name')
+            created_by = dfq[0].get('created_by')
+            return project_id, project_name, created_by
+        except IndexError or KeyError or TypeError as err:
+            print(err)
+            return -1, -1, -1
+    else:
+        return -1, -1, -1
 
 
 def validate_person_reference(person_list):

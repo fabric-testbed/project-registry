@@ -171,15 +171,16 @@ def comanage_projects_delete_delete(project_uuid):
         SELECT cou_id FROM comanage_cous WHERE name = '{0}';
         """.format(cou)
         dfq = dict_from_query(sql)
-        cou_id = dfq[0].get('cou_id')
-        if comanage_remove_cou(cou_id):
-            command = """
-            DELETE FROM comanage_cous WHERE cou_id = {0};
-            """.format(cou_id)
-            run_sql_commands(command)
-        else:
-            print('[INFO] error at: comanage_projects_delete_delete(project_uuid)')
-            return False
+        if dfq:
+            cou_id = dfq[0].get('cou_id')
+            if comanage_remove_cou(cou_id):
+                command = """
+                DELETE FROM comanage_cous WHERE cou_id = {0};
+                """.format(cou_id)
+                run_sql_commands(command)
+            else:
+                print('[INFO] error at: comanage_projects_delete_delete(project_uuid)')
+                return False
     return True
 
 
@@ -437,6 +438,7 @@ def comanange_add_users_to_cou(co_person_id, co_cou_id):
 
 def comanage_remove_users_from_cou(role_id):
     # ref: https://spaces.at.internet2.edu/display/COmanage/CoPersonRole+API
+    print("removing {0}".format(str(role_id)))
     if config.getboolean('mock', 'comanage_api'):
         return mock_comanage_remove_users_from_cou(role_id)
     else:
@@ -446,6 +448,7 @@ def comanage_remove_users_from_cou(role_id):
             auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
         )
         if response.status_code == requests.codes.ok:
+            print(response)
             return True
         else:
             print("[ERROR] " + str(response))
