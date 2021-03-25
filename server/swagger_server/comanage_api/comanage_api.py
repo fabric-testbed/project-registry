@@ -153,9 +153,9 @@ def comanage_projects_create_post(project_uuid, project_name):
         ON CONFLICT ON CONSTRAINT cou_id_duplicate
         DO UPDATE 
         SET deleted = '{3}', description = '{4}', modified_date = '{7}', name = '{8}', revision = '{10}';
-        """.format(cou['ActorIdentifier'], cou['CoId'], cou['Created'], cou['Deleted'], cou['Description'],
-                   cou['Id'], cou['Lft'], cou['Modified'], cou['Name'], parent_id, cou['Revision'],
-                   cou['Rght'], cou['Version'])
+        """.format(cou['ActorIdentifier'], cou['CoId'], cou['Created'], cou['Deleted'],
+                   str(cou['Description']).replace("'", "''"), cou['Id'], cou['Lft'], cou['Modified'], cou['Name'],
+                   parent_id, cou['Revision'], cou['Rght'], cou['Version'])
         run_sql_commands(command)
 
     return True
