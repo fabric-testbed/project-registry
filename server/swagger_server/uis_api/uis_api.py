@@ -1,4 +1,5 @@
 from configparser import ConfigParser
+from json import JSONDecodeError
 
 import requests
 from flask import request
@@ -41,7 +42,11 @@ def uis_get_uuid_from_oidc_claim_sub(oidc_claim_sub):
             print(e)
             return ''
         if response.status_code == requests.codes.ok:
-            return response.json()
+            try:
+                return response.json()
+            except JSONDecodeError as e:
+                print(e)
+                return ''
         else:
             return ''
 

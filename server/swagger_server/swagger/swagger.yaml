@@ -181,7 +181,7 @@ paths:
       tags:
       - projects
       summary: update an existing project
-      description: Update an existing project name, description or facility
+      description: "Update an existing project name, description or facility"
       operationId: projects_update_put
       parameters:
       - name: uuid
@@ -526,6 +526,25 @@ paths:
                 items:
                   $ref: '#/components/schemas/People_short'
                 x-content-type: application/json
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization information is missing or invalid
+        "404":
+          description: People not found
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.people_controller
+  /people/role_attribute_sync:
+    get:
+      tags:
+      - people
+      summary: role attribute sync
+      description: Synchronize COU Role Attributes
+      operationId: people_role_attribute_sync_get
+      responses:
+        "200":
+          description: OK
         "400":
           description: Bad request
         "401":

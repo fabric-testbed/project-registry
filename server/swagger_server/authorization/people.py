@@ -54,6 +54,25 @@ def filter_people_oidc_claim_sub_get(headers, response):
     return response
 
 
+def authorize_people_role_attribute_sync_get(headers):
+    # TODO: check if any authorization is required here at all
+    # allow mock data to pass
+    if config.getboolean('mock', 'data'):
+        return True, ''
+    # get api_user
+    api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
+    if api_person.uuid == DEFAULT_USER_UUID:
+        return False, api_person
+
+    return True, api_person
+
+
+def filter_people_role_attribute_sync_get(headers, response):
+    # get api_user
+    api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))
+    return response
+
+
 def authorize_people_uuid_get(headers, uuid):
     # get api_user
     api_person = get_api_person(headers.get('X-Vouch-Idp-Idtoken'))

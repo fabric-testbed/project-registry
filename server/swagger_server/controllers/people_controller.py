@@ -33,6 +33,17 @@ def people_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
     return rc.people_oidc_claim_sub_get(oidc_claim_sub)
 
 
+def people_role_attribute_sync_get():  # noqa: E501
+    """role attribute sync
+
+    Synchronize COU Role Attributes # noqa: E501
+
+
+    :rtype: None
+    """
+    return rc.people_role_attribute_sync_get()
+
+
 def people_uuid_get(uuid):  # noqa: E501
     """person details by UUID
 

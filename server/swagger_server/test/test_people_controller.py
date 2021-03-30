@@ -39,6 +39,17 @@ class TestPeopleController(BaseTestCase):
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
 
+    def test_people_role_attribute_sync_get(self):
+        """Test case for people_role_attribute_sync_get
+
+        role attribute sync
+        """
+        response = self.client.open(
+            '//people/role_attribute_sync',
+            method='GET')
+        self.assert200(response,
+                       'Response body is : ' + response.data.decode('utf-8'))
+
     def test_people_uuid_get(self):
         """Test case for people_uuid_get
 

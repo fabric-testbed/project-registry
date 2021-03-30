@@ -14,6 +14,20 @@ config = ConfigParser()
 config.read('swagger_server/config/config.ini')
 
 
+def comanage_people_role_attribute_sync_get(co_person_id):
+    response = requests.get(
+        url='https://registry-test.cilogon.org/registry/co_person_roles.json',
+        params={'copersonid': co_person_id, 'coid': CO_API_COID},
+        auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
+    )
+    if response.status_code == requests.codes.ok:
+        role_data = response.json()
+    else:
+        print(response)
+        role_data = {'CoPersonRoles': []}
+    return role_data.get('CoPersonRoles')
+
+
 def comanage_projects_add_members_put(project_uuid, project_members):
     # get project cou
     project_cou_pm = str(project_uuid) + '-pm'

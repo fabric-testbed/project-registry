@@ -1,15 +1,16 @@
 import re
 from configparser import ConfigParser
+from pprint import pprint
 
 from flask import request
 from swagger_server.models.people_long import PeopleLong  # noqa: E501
 from swagger_server.models.people_short import PeopleShort  # noqa: E501
 
 from . import DEFAULT_USER_UUID
-from .utils import dict_from_query, resolve_empty_people_uuid
+from .utils import dict_from_query, resolve_empty_people_uuid, run_sql_commands
 from ..authorization.people import authorize_people_get, authorize_people_oidc_claim_sub_get, \
-    authorize_people_uuid_get
-from ..comanage_api.comanage_api import comanage_check_for_new_users
+    authorize_people_uuid_get, authorize_people_role_attribute_sync_get
+from ..comanage_api.comanage_api import comanage_check_for_new_users, comanage_people_role_attribute_sync_get
 
 config = ConfigParser()
 config.read('swagger_server/config/config.ini')
@@ -112,6 +113,102 @@ def people_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
                {'X-Error': 'Authorization information is missing or invalid'}
 
     return people_uuid_get(uuid)
+
+
+def people_role_attribute_sync_get():  # noqa: E501
+    """role attribute sync
+
+    Synchronize COU Role Attributes # noqa: E501
+
+
+    :rtype: None
+    """
+
+    # check authorization
+    authorized, api_person = authorize_people_role_attribute_sync_get(request.headers)
+    if not authorized:
+        return 'Authorization information is missing or invalid: /people', 401, \
+               {'X-Error': 'Authorization information is missing or invalid'}
+
+    sql = """
+    SELECT id, co_person_id FROM fabric_people
+    WHERE oidc_claim_sub = '{0}';
+    """.format(api_person.oidc_claim_sub)
+    dfq = dict_from_query(sql)
+    try:
+        co_person_id = dfq[0].get('co_person_id')
+        person_id = dfq[0].get('id')
+    except IndexError or KeyError as err:
+        print(err)
+        co_person_id = -1
+        person_id = -1
+    co_person_roles = comanage_people_role_attribute_sync_get(co_person_id)
+    # add new roles from comanage to pr
+    co_role_id_list = []
+    for role in co_person_roles:
+        role_id = role.get('Id')
+        co_role_id_list.append(int(role_id))
+        sql = """
+        SELECT EXISTS (
+            SELECT 1 FROM fabric_roles
+            WHERE people_id = {0} AND role_id = {1}
+        );
+        """.format(person_id, role_id)
+        dfq = dict_from_query(sql)
+        if not dfq[0].get('exists'):
+            sql = """
+            SELECT id, name FROM comanage_cous
+            WHERE cou_id = {0};
+            """.format(role.get('CouId'))
+            dfq = dict_from_query(sql)
+            try:
+                cou_id = dfq[0].get('id')
+                role_name = dfq[0].get('name')
+            except IndexError or KeyError as err:
+                print(err)
+                cou_id = -1
+                role_name = None
+            print("[INFO] Adding role: people_id = {0}, cou_id = {1}, role_id = {2}, role_name = {3}".format(
+                str(person_id), str(cou_id), str(role_id), str(role_name)
+            ))
+            # add cou to fabric_roles table
+            command = """
+            INSERT INTO fabric_roles(people_id, cou_id, role_id, role_name)
+            VALUES ({0}, {1}, {2}, '{3}')
+            ON CONFLICT ON CONSTRAINT fabric_role_duplicate
+            DO NOTHING;
+            """.format(int(person_id), int(cou_id), int(role_id), str(role_name))
+            run_sql_commands(command)
+
+
+    # remove stale roles from pr not found in comanage
+    sql = """
+    SELECT role_id FROM fabric_roles
+    WHERE people_id = {0};
+    """.format(person_id)
+    dfq = dict_from_query(sql)
+    pr_role_id_list = []
+    try:
+        for item in dfq:
+            pr_role_id_list.append(item.get('role_id'))
+    except IndexError or KeyError as err:
+        print(err)
+    for role in pr_role_id_list:
+        if role not in co_role_id_list:
+            print("[INFO] Removing role: people_id = {0}, role_id = {1}".format(
+                str(person_id), str(role)
+            ))
+            # remove cou to fabric_roles table
+            command = """
+            DELETE FROM fabric_roles
+            WHERE people_id = {0} AND role_id = {1};
+            """.format(int(person_id), int(role))
+            run_sql_commands(command)
+
+    print("[DEBUG] CO roles: {0}".format(co_role_id_list))
+    print("[DEBUG] PR roles: {0}".format(pr_role_id_list))
+
+    return 'OK', 200, {'X-INFO': 'Role attribute sync'}
 
 
 def people_uuid_get(uuid):  # noqa: E501
