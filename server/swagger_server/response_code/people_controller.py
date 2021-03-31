@@ -155,7 +155,7 @@ def people_role_attribute_sync_get():  # noqa: E501
         );
         """.format(person_id, role_id)
         dfq = dict_from_query(sql)
-        if not dfq[0].get('exists'):
+        if not dfq[0].get('exists') and role.get('CouId'):
             sql = """
             SELECT id, name FROM comanage_cous
             WHERE cou_id = {0};
