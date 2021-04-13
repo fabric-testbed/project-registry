@@ -224,11 +224,13 @@ def people_role_attribute_sync_get():  # noqa: E501
     print("[DEBUG] CO roles: {0}".format(co_role_id_list))
     print("[DEBUG] PR roles: {0}".format(pr_role_id_list))
 
-    return cors_response(
-        request=request,
-        status_code=200,
-        body='Role attribute sync'
-    )
+    return True
+
+    # return cors_response(
+    #     request=request,
+    #     status_code=200,
+    #     body='Role attribute sync'
+    # )
 
 
 def people_uuid_get(uuid):  # noqa: E501
@@ -244,8 +246,31 @@ def people_uuid_get(uuid):  # noqa: E501
     # resolve any missing people uuids
     # resolve_empty_people_uuid()
 
+    # check authorization
+    user_has_auth, user_uuid = authorize_people_uuid_get(request.headers, uuid)
+    if not user_has_auth:
+        return cors_response(
+            request=request,
+            status_code=401,
+            body='Authorization information is missing or invalid: /people/{uuid}',
+            x_error='Authorization information is missing or invalid'
+        )
+
+    if uuid == user_uuid:
+        people_role_attribute_sync_get()
+
     # response as PeopleLong()
     response = PeopleLong()
+
+    # check if uuid exists for user making the call
+    sql = """
+    SELECT EXISTS (
+        SELECT 1 FROM fabric_people WHERE fabric_people.uuid = '{0}'
+    );
+    """.format(uuid)
+    dfq = dict_from_query(sql)
+    if not dfq[0].get('exists'):
+        pass
 
     # get people id
     sql = """
@@ -261,15 +286,6 @@ def people_uuid_get(uuid):  # noqa: E501
             status_code=404,
             body='Person UUID Not Found: {0}'.format(str(uuid)),
             x_error='Person UUID Not Found'
-        )
-
-    # check authorization
-    if not authorize_people_uuid_get(request.headers, uuid):
-        return cors_response(
-            request=request,
-            status_code=401,
-            body='Authorization information is missing or invalid: /people/{uuid}',
-            x_error='Authorization information is missing or invalid'
         )
 
     # get person attributes
