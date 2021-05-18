@@ -7,7 +7,7 @@ from swagger_server.models.people_long import PeopleLong  # noqa: E501
 from swagger_server.models.people_short import PeopleShort  # noqa: E501
 
 from . import DEFAULT_USER_UUID
-from .utils import dict_from_query, resolve_empty_people_uuid, run_sql_commands
+from .utils import dict_from_query, resolve_empty_people_uuid, run_sql_commands, cors_response
 from ..authorization.people import authorize_people_get, authorize_people_oidc_claim_sub_get, \
     authorize_people_uuid_get, authorize_people_role_attribute_sync_get
 from ..comanage_api.comanage_api import comanage_check_for_new_users, comanage_people_role_attribute_sync_get
@@ -34,13 +34,21 @@ def people_get(person_name=None):  # noqa: E501
     """
     # check authorization
     if not authorize_people_get(request.headers):
-        return 'Authorization information is missing or invalid: /people', 401, \
-               {'X-Error': 'Authorization information is missing or invalid'}
+        return cors_response(
+            request=request,
+            status_code=401,
+            body='Authorization information is missing or invalid: /people',
+            x_error='Authorization information is missing or invalid'
+        )
 
     # check for new comanage users
     if not comanage_check_for_new_users():
-        return 'COmanage Error - Unable to retrieve co_people data', 500, \
-               {'X-Error': 'Unable to retrieve co_people data'}
+        return cors_response(
+            request=request,
+            status_code=500,
+            body='COmanage Error - Unable to retrieve co_people data',
+            x_error='Unable to retrieve co_people data'
+        )
 
     # resolve any missing people uuids
     resolve_empty_people_uuid()
@@ -109,8 +117,12 @@ def people_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
 
     # check authorization
     if not authorize_people_oidc_claim_sub_get(request.headers, oidc_claim_sub):
-        return 'Authorization information is missing or invalid: /people/oidc_claim_sub', 401, \
-               {'X-Error': 'Authorization information is missing or invalid'}
+        return cors_response(
+            request=request,
+            status_code=401,
+            body='Authorization information is missing or invalid: /people/oidc_claim_sub',
+            x_error='Authorization information is missing or invalid'
+        )
 
     return people_uuid_get(uuid)
 
@@ -127,8 +139,12 @@ def people_role_attribute_sync_get():  # noqa: E501
     # check authorization
     authorized, api_person = authorize_people_role_attribute_sync_get(request.headers)
     if not authorized:
-        return 'Authorization information is missing or invalid: /people', 401, \
-               {'X-Error': 'Authorization information is missing or invalid'}
+        return cors_response(
+            request=request,
+            status_code=401,
+            body='Authorization information is missing or invalid: /people',
+            x_error='Authorization information is missing or invalid'
+        )
 
     sql = """
     SELECT id, co_person_id FROM fabric_people
@@ -208,7 +224,13 @@ def people_role_attribute_sync_get():  # noqa: E501
     print("[DEBUG] CO roles: {0}".format(co_role_id_list))
     print("[DEBUG] PR roles: {0}".format(pr_role_id_list))
 
-    return 'OK', 200, {'X-INFO': 'Role attribute sync'}
+    return True
+
+    # return cors_response(
+    #     request=request,
+    #     status_code=200,
+    #     body='Role attribute sync'
+    # )
 
 
 def people_uuid_get(uuid):  # noqa: E501
@@ -224,8 +246,31 @@ def people_uuid_get(uuid):  # noqa: E501
     # resolve any missing people uuids
     # resolve_empty_people_uuid()
 
+    # check authorization
+    user_has_auth, user_uuid = authorize_people_uuid_get(request.headers, uuid)
+    if not user_has_auth:
+        return cors_response(
+            request=request,
+            status_code=401,
+            body='Authorization information is missing or invalid: /people/{uuid}',
+            x_error='Authorization information is missing or invalid'
+        )
+
+    if uuid == user_uuid:
+        people_role_attribute_sync_get()
+
     # response as PeopleLong()
     response = PeopleLong()
+
+    # check if uuid exists for user making the call
+    sql = """
+    SELECT EXISTS (
+        SELECT 1 FROM fabric_people WHERE fabric_people.uuid = '{0}'
+    );
+    """.format(uuid)
+    dfq = dict_from_query(sql)
+    if not dfq[0].get('exists'):
+        pass
 
     # get people id
     sql = """
@@ -236,12 +281,12 @@ def people_uuid_get(uuid):  # noqa: E501
         people_id = dfq[0].get('id')
     except IndexError or KeyError or TypeError as err:
         print(err)
-        return 'Person UUID Not Found: {0}'.format(str(uuid)), 404, {'X-Error': 'Person UUID Not Found'}
-
-    # check authorization
-    if not authorize_people_uuid_get(request.headers, uuid):
-        return 'Authorization information is missing or invalid: /people/{uuid}', 401, \
-               {'X-Error': 'Authorization information is missing or invalid'}
+        return cors_response(
+            request=request,
+            status_code=404,
+            body='Person UUID Not Found: {0}'.format(str(uuid)),
+            x_error='Person UUID Not Found'
+        )
 
     # get person attributes
     sql_person = """

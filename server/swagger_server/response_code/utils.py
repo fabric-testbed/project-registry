@@ -1,4 +1,5 @@
 import psycopg2
+import flask
 from swagger_server import Session
 
 from ..uis_api.uis_api import uis_get_uuid_from_oidc_claim_sub
@@ -120,17 +121,18 @@ def resolve_empty_people_uuid():
             people_id = person.get('id')
             oidc_claim_sub = person.get('oidc_claim_sub')
             uuid = uis_get_uuid_from_oidc_claim_sub(oidc_claim_sub)
-
-            sql = """
-            UPDATE fabric_people
-            SET uuid = '{0}'
-            WHERE fabric_people.id = {1};
-            """.format(uuid, people_id)
-            sql_list.append(sql)
+            if uuid:
+                sql = """
+                UPDATE fabric_people
+                SET uuid = '{0}'
+                WHERE fabric_people.id = {1};
+                """.format(uuid, people_id)
+                sql_list.append(sql)
 
         commands = tuple(i for i in sql_list)
-        print("[INFO] attempt to update people uuid data")
-        run_sql_commands(commands)
+        if commands:
+            print("[INFO] attempt to update people uuid data")
+            run_sql_commands(commands)
 
 
 def filter_out_preexisting_project_members(project_members, project_id):
@@ -223,3 +225,20 @@ def filter_out_nonexisting_project_owners(project_owners, project_id):
             print('[INFO] Exclude {0} from remove_project_owners - not found in the group'.format(member))
 
     return remove_project_owners
+
+
+def cors_response(request, status_code=200, body=None, x_error=None):
+    response = flask.Response()
+    response.status_code = status_code
+    response.data = body
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range'
+    response.headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, X-Error'
+
+    if x_error:
+        response.headers['X-Error'] = x_error
+
+    print(response)
+    return response
