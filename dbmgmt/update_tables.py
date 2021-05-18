@@ -461,6 +461,13 @@ def load_version_data():
 
 
 if __name__ == '__main__':
+
+    USER_MESSAGE = """
+    Populate user UUID values by querying the https://127.0.0.1:8443/people endpoint
+    
+    Once completed, press Enter to continue
+    """
+
     if config.getboolean('mock', 'data'):
         print("[INFO] *** USING MOCK DATA ***")
     print("[INFO] ### LOAD VERSION DATA ###")
@@ -471,14 +478,17 @@ if __name__ == '__main__':
     insert_default_user()
     print("[INFO] ### UPDATE COMANAGE PEOPLE DATA ###")
     update_comanage_people_data()
-    print("[INFO] ### QUERY PROJECT REGISTRY PEOPLE DATA ###")
-    response = requests.get(
-        url="https://" + FS_DOMAIN + ":" + FS_PORT + "/people",
-        verify=False,
-        cookies={
-            'fabric-service': FS_COOKIE
-        }
-    )
-    print(response)
+
+    input(USER_MESSAGE)
+
+    # print("[INFO] ### QUERY PROJECT REGISTRY PEOPLE DATA ###")
+    # response = requests.get(
+    #     url="https://" + FS_DOMAIN + ":" + FS_PORT + "/people",
+    #     verify=False,
+    #     cookies={
+    #         'fabric-service': FS_COOKIE
+    #     }
+    # )
+    # print(response)
     print("[INFO] ### UPDATE PROJECTS DATA ###")
     update_projects_data()

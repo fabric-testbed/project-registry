@@ -31,6 +31,20 @@ pip install -r requirements.txt
 
 # create database tables and load
 cd ../dbmgmt
+
+MESSAGE="
+### CREATE TABLES ###
+from /dbmgmt
+source ../server/venv/bin/activate
+python drop_create_tables.py
+
+### UPDATE TABLES ###
+from /dbmgmt
+source ../server/venv/bin/activate
+python update_tables.py
+"
+echo "$MESSAGE"
+
 # drop and create all database tables
 #python drop_create_tables.py
 
