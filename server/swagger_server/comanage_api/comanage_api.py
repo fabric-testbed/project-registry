@@ -600,12 +600,21 @@ def comanage_create_update_user_in_database(co_person_id):
         co_status = person['Status']
         email = email_data['EmailAddresses'][0]['Mail']
         name = name_data['Names'][0]['Given']
-        if name_data['Names'][0]['Middle']:
-            name = name + ' ' + name_data['Names'][0]['Middle']
-        if name_data['Names'][0]['Family']:
-            name = name + ' ' + name_data['Names'][0]['Family']
-        if name_data['Names'][0]['Suffix']:
-            name = name + ', ' + name_data['Names'][0]['Suffix']
+        try:
+            if name_data['Names'][0]['Middle']:
+                name = name + ' ' + name_data['Names'][0]['Middle']
+        except KeyError as err:
+            pass
+        try:
+            if name_data['Names'][0]['Family']:
+                name = name + ' ' + name_data['Names'][0]['Family']
+        except KeyError as err:
+            pass
+        try:
+            if name_data['Names'][0]['Suffix']:
+                name = name + ', ' + name_data['Names'][0]['Suffix']
+        except KeyError as err:
+            pass
         oidc_claim_sub = person['ActorIdentifier']
         uuid = ''
         # SQL command

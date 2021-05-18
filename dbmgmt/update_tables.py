@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 import json
 import re
-import os
-from configparser import ConfigParser
 from pprint import pprint
 from uuid import uuid4
 
 import psycopg2
 import requests
+from configparser import ConfigParser
 from requests.auth import HTTPBasicAuth
+
 from drop_create_tables import Session
 
 ### FABRIC SERVICE COOKIE ###
@@ -132,7 +132,8 @@ def update_comanage_cou_data():
         DO UPDATE 
         SET deleted = '{4}', description = '{5}', modified_date = '{7}', name = '{8}', revision = '{9}';
         """.format(cou['ActorIdentifier'], cou['CoId'], cou['Id'], cou['Created'], cou['Deleted'],
-                   cou['Description'].replace("'", "''"), cou['Lft'], cou['Modified'], cou['Name'], parent, cou['Revision'],
+                   cou['Description'].replace("'", "''"), cou['Lft'], cou['Modified'], cou['Name'], parent,
+                   cou['Revision'],
                    cou['Rght'], cou['Version'])
         sql_list.append(command)
     commands = tuple(i for i in sql_list)
@@ -161,6 +162,25 @@ def update_comanage_people_data():
     # update project_people table based on findings
     for person in people_data['CoPeople']:
         if person['Status'] == 'Active':
+            # get oidc_claim_sub
+            if config.getboolean('mock', 'data'):
+                oidc_claim_sub = person['ActorIdentifier']
+            else:
+                response = requests.get(
+                    url='https://registry-test.cilogon.org/registry/identifiers.json',
+                    params={'copersonid': person['Id']},
+                    auth=HTTPBasicAuth(CO_API_USERNAME, CO_API_PASSWORD)
+                )
+                if response.status_code == requests.codes.ok:
+                    data = response.json()
+                    for identifier in data['Identifiers']:
+                        if identifier['Type'] == 'oidcsub':
+                            oidc_claim_sub = identifier['Identifier']
+                            break
+                else:
+                    print("[ERROR] unable to get 'Identifiers' from COmanage")
+                    print("[ERROR] " + str(response))
+                    oidc_claim_sub = default_user['oidc_claim_sub']
             # get name
             if config.getboolean('mock', 'data'):
                 name_data = {'Names': [{'Given': '', 'Middle': '', 'Family': '', 'Suffix': ''}]}
@@ -209,13 +229,21 @@ def update_comanage_people_data():
             co_status = person['Status']
             email = email_data['EmailAddresses'][0]['Mail']
             name = name_data['Names'][0]['Given']
-            if name_data['Names'][0]['Middle']:
-                name = name + ' ' + name_data['Names'][0]['Middle']
-            if name_data['Names'][0]['Family']:
-                name = name + ' ' + name_data['Names'][0]['Family']
-            if name_data['Names'][0]['Suffix']:
-                name = name + ', ' + name_data['Names'][0]['Suffix']
-            oidc_claim_sub = person['ActorIdentifier']
+            try:
+                if name_data['Names'][0]['Middle']:
+                    name = name + ' ' + name_data['Names'][0]['Middle']
+            except KeyError as err:
+                pass
+            try:
+                if name_data['Names'][0]['Family']:
+                    name = name + ' ' + name_data['Names'][0]['Family']
+            except KeyError as err:
+                pass
+            try:
+                if name_data['Names'][0]['Suffix']:
+                    name = name + ', ' + name_data['Names'][0]['Suffix']
+            except KeyError as err:
+                pass
             # check UIS API mock settings
             if config.getboolean('mock', 'uis_api'):
                 uuid = uuid4()
@@ -254,6 +282,7 @@ def update_co_person_cou_links(co_person_id):
         )
         if response.status_code == requests.codes.ok:
             role_data = response.json()
+            print(role_data)
         else:
             print(response)
             role_data = {'CoPersonRoles': []}
@@ -332,7 +361,8 @@ def update_projects_data():
         VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}')
         ON CONFLICT ON CONSTRAINT projects_uuid
         DO NOTHING;
-        """.format(cou.get('name'), cou.get('desc').replace("'", "''"), DEFAULT_DESCRIPTION, DEFAULT_FACILITY, created_by,
+        """.format(cou.get('name'), cou.get('desc').replace("'", "''"), DEFAULT_DESCRIPTION, DEFAULT_FACILITY,
+                   created_by,
                    cou.get('created_date'))
         sql_list.append(command)
     commands = tuple(i for i in sql_list)
