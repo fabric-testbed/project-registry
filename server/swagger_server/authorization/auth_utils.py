@@ -2,8 +2,11 @@ import re
 from configparser import ConfigParser
 
 from jwt import decode
+from flask import request
 
 from ..models.people_long import PeopleLong
+from ..comanage_api.comanage_api import comanage_check_for_new_users
+from ..response_code.utils import resolve_empty_people_uuid, cors_response
 
 config = ConfigParser()
 config.read('swagger_server/config/config.ini')
@@ -19,7 +22,6 @@ DEFAULT_USER_OIDC_CLAIM_SUB = config.get('default-user', 'oidc_claim_sub')
 
 
 def get_api_person(x_vouch_idp_idtoken):
-    api_user = PeopleLong()
     if config.getboolean('mock', 'data'):
         api_user = auth_utils_oidc_claim_sub_get(DEFAULT_USER_OIDC_CLAIM_SUB)
     elif x_vouch_idp_idtoken:
@@ -27,12 +29,26 @@ def get_api_person(x_vouch_idp_idtoken):
         decoded = decode(x_vouch_idp_idtoken, verify=False)
         try:
             api_user = auth_utils_oidc_claim_sub_get(decoded.get('sub'))
-            # print(api_user)
+            if not api_user:
+                # check for new comanage users
+                if not comanage_check_for_new_users():
+                    return cors_response(
+                        request=request,
+                        status_code=500,
+                        body='COmanage Error - Unable to retrieve co_people data',
+                        x_error='Unable to retrieve co_people data'
+                    )
+                # resolve any missing people uuids
+                resolve_empty_people_uuid()
+                api_user = auth_utils_oidc_claim_sub_get(decoded.get('sub'))
+                if not api_user:
+                    api_user = auth_utils_oidc_claim_sub_get(DEFAULT_USER_OIDC_CLAIM_SUB)
         except IndexError or KeyError or TypeError as err:
             print(err)
             print('User not found')
+            api_user = auth_utils_oidc_claim_sub_get(DEFAULT_USER_OIDC_CLAIM_SUB)
     else:
-        api_user = auth_utils_oidc_claim_sub_get(config.get('default-user', 'oidc_claim_sub'))
+        api_user = auth_utils_oidc_claim_sub_get(DEFAULT_USER_OIDC_CLAIM_SUB)
     print('[INFO] Operating as: ' + str(api_user.name))
     return api_user
 
