@@ -84,7 +84,7 @@ def mock_comanange_add_users_to_cou(co_person_id, co_cou_id):
         'Id': MOCK_ROLE_ID_FLAG
     }
 
-    return new_co_person_role
+    return new_co_person_role, 'Active'
 
 
 def mock_comanage_remove_users_from_cou(role_id):
