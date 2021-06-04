@@ -85,8 +85,8 @@ def insert_default_user():
             dfq = dict_from_query(sql)
             co_cou_id = dfq[0].get('id')
             command = """
-            INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
-            VALUES ({0}, {1}, '{2}', {3})
+            INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id, status)
+            VALUES ({0}, {1}, '{2}', {3}, 'Active')
             ON CONFLICT ON CONSTRAINT fabric_role_duplicate
             DO NOTHING;
             """.format(int(co_cou_id), int(people_id), role_name, int(role_id))
@@ -297,6 +297,7 @@ def update_co_person_cou_links(co_person_id):
         # pprint(role)
         try:
             role_id = role['Id']
+            status = role['Status']
             # get comanage_cous id and name
             sql = """
             SELECT id, name from comanage_cous WHERE cou_id = '{0}'
@@ -305,11 +306,11 @@ def update_co_person_cou_links(co_person_id):
             co_cou_id = dfq[0].get('id')
             co_role_name = dfq[0].get('name')
             command = """
-            INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
-            VALUES ({0}, {1}, '{2}', {3})
+            INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id, status)
+            VALUES ({0}, {1}, '{2}', {3}, '{4}')
             ON CONFLICT ON CONSTRAINT fabric_role_duplicate
             DO NOTHING;
-            """.format(int(co_cou_id), int(people_id), co_role_name, int(role_id))
+            """.format(int(co_cou_id), int(people_id), co_role_name, int(role_id), status)
             sql_list.append(command)
         except KeyError:
             pass

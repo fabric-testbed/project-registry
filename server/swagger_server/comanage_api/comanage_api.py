@@ -51,17 +51,17 @@ def comanage_projects_add_members_put(project_uuid, project_members):
             dfq = dict_from_query(sql)
             person_id = dfq[0].get('id')
             co_person_id = dfq[0].get('co_person_id')
-            co_role_id = comanange_add_users_to_cou(co_person_id, co_cou_id)
+            co_role_id, status = comanange_add_users_to_cou(co_person_id, co_cou_id)
         except KeyError or IndexError as err:
             print(err)
             return False
         # add cou to fabric_roles table
         command = """
-        INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
-        VALUES ({0}, {1}, '{2}', {3})
+        INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id, status)
+        VALUES ({0}, {1}, '{2}', {3}, '{4}')
         ON CONFLICT ON CONSTRAINT fabric_role_duplicate
         DO NOTHING;
-        """.format(int(cou_id), int(person_id), project_cou_pm, int(co_role_id))
+        """.format(int(cou_id), int(person_id), project_cou_pm, int(co_role_id), str(status))
         run_sql_commands(command)
 
     return True
@@ -90,17 +90,17 @@ def comanage_projects_add_owners_put(project_uuid, project_owners):
             dfq = dict_from_query(sql)
             person_id = dfq[0].get('id')
             co_person_id = dfq[0].get('co_person_id')
-            co_role_id = comanange_add_users_to_cou(co_person_id, co_cou_id)
+            co_role_id, status = comanange_add_users_to_cou(co_person_id, co_cou_id)
         except KeyError or IndexError as err:
             print(err)
             return False
         # add cou to fabric_roles table
         command = """
-        INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
-        VALUES ({0}, {1}, '{2}', {3})
+        INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id, status)
+        VALUES ({0}, {1}, '{2}', {3}, '{4}')
         ON CONFLICT ON CONSTRAINT fabric_role_duplicate
         DO NOTHING;
-        """.format(int(cou_id), int(person_id), project_cou_po, int(co_role_id))
+        """.format(int(cou_id), int(person_id), project_cou_po, int(co_role_id), str(status))
         run_sql_commands(command)
 
     return True
@@ -131,17 +131,17 @@ def comanage_projects_add_creator_put(project_uuid, project_creator):
             print(dfq)
             person_id = dfq[0].get('id')
             co_person_id = dfq[0].get('co_person_id')
-            co_role_id = comanange_add_users_to_cou(co_person_id, co_cou_id)
+            co_role_id, status = comanange_add_users_to_cou(co_person_id, co_cou_id)
         except KeyError or IndexError as err:
             print(err)
             return False
         # add cou to fabric_roles table
         command = """
-        INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
-        VALUES ({0}, {1}, '{2}', {3})
+        INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id, status)
+        VALUES ({0}, {1}, '{2}', {3}, '{4}')
         ON CONFLICT ON CONSTRAINT fabric_role_duplicate
         DO NOTHING;
-        """.format(int(cou_id), int(person_id), project_cou_pc, int(co_role_id))
+        """.format(int(cou_id), int(person_id), project_cou_pc, int(co_role_id), str(status))
         run_sql_commands(command)
 
     return True
@@ -406,7 +406,7 @@ def comanage_remove_cou(cou_id):
 def comanange_add_users_to_cou(co_person_id, co_cou_id):
     # ref: https://spaces.at.internet2.edu/display/COmanage/CoPersonRole+API
     if config.getboolean('mock', 'comanage_api'):
-        new_co_person_role = mock_comanange_add_users_to_cou(co_person_id, co_cou_id)
+        new_co_person_role, status = mock_comanange_add_users_to_cou(co_person_id, co_cou_id)
     else:
         co_person_role_request = json.dumps({
             'RequestType': 'CoPersonRoles',
@@ -447,7 +447,7 @@ def comanange_add_users_to_cou(co_person_id, co_cou_id):
                 'Id': MOCK_ROLE_ID_FLAG
             }
 
-    return new_co_person_role.get('Id')
+    return new_co_person_role.get('Id'), new_co_person_role.get('Status')
 
 
 def comanage_remove_users_from_cou(role_id):
@@ -668,6 +668,7 @@ def comanage_update_co_person_cou_links(co_person_id, people_id):
         # pprint(role)
         try:
             role_id = role['Id']
+            status = role['Status']
             # get comanage_cous id and name
             sql = """
             SELECT id, name from comanage_cous WHERE cou_id = '{0}'
@@ -676,11 +677,11 @@ def comanage_update_co_person_cou_links(co_person_id, people_id):
             co_cou_id = dfq[0].get('id')
             co_role_name = dfq[0].get('name')
             command = """
-            INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id)
-            VALUES ({0}, {1}, '{2}', {3})
+            INSERT INTO fabric_roles(cou_id, people_id, role_name, role_id, status)
+            VALUES ({0}, {1}, '{2}', {3}, '{4}')
             ON CONFLICT ON CONSTRAINT fabric_role_duplicate
             DO NOTHING;
-            """.format(int(co_cou_id), int(people_id), co_role_name, int(role_id))
+            """.format(int(co_cou_id), int(people_id), co_role_name, int(role_id), str(status))
             sql_list.append(command)
         except KeyError:
             pass

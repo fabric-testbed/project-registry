@@ -163,13 +163,14 @@ def people_role_attribute_sync_get():  # noqa: E501
     co_role_id_list = []
     for role in co_person_roles:
         role_id = role.get('Id')
+        status = role.get('Status')
         co_role_id_list.append(int(role_id))
         sql = """
         SELECT EXISTS (
             SELECT 1 FROM fabric_roles
-            WHERE people_id = {0} AND role_id = {1}
+            WHERE people_id = {0} AND role_id = {1} and status = '{2}'
         );
-        """.format(person_id, role_id)
+        """.format(person_id, role_id, status)
         dfq = dict_from_query(sql)
         if not dfq[0].get('exists') and role.get('CouId'):
             sql = """
@@ -189,11 +190,11 @@ def people_role_attribute_sync_get():  # noqa: E501
             ))
             # add cou to fabric_roles table
             command = """
-            INSERT INTO fabric_roles(people_id, cou_id, role_id, role_name)
-            VALUES ({0}, {1}, {2}, '{3}')
+            INSERT INTO fabric_roles(people_id, cou_id, role_id, role_name, status)
+            VALUES ({0}, {1}, {2}, '{3}', '{4}')
             ON CONFLICT ON CONSTRAINT fabric_role_duplicate
-            DO NOTHING;
-            """.format(int(person_id), int(cou_id), int(role_id), str(role_name))
+            DO UPDATE SET status = '{4}';
+            """.format(int(person_id), int(cou_id), int(role_id), str(role_name), str(status))
             run_sql_commands(command)
 
 
@@ -299,7 +300,7 @@ def people_uuid_get(uuid):  # noqa: E501
     roles = []
     sql_roles = """
     SELECT role_name from fabric_roles
-    WHERE people_id = '{0}';
+    WHERE people_id = '{0}' and status = 'Active';
     """.format(people_id)
     dfq = dict_from_query(sql_roles)
     for role in dfq:

@@ -85,7 +85,7 @@ def auth_utils_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
     roles = []
     sql_roles = """
     SELECT role_name from fabric_roles
-    WHERE people_id = '{0}';
+    WHERE people_id = '{0}' and status = 'Active';
     """.format(people_id)
     dfq = dict_from_query(sql_roles)
     for role in dfq:
