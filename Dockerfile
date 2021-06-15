@@ -13,3 +13,4 @@ WORKDIR /server
 ENTRYPOINT ["/server/docker-entrypoint.sh"]
 EXPOSE 5000
 CMD ["run_server"]
+
