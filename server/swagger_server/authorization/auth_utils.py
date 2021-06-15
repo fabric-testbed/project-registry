@@ -69,7 +69,7 @@ def auth_utils_oidc_claim_sub_get(oidc_claim_sub):  # noqa: E501
         except IndexError or KeyError or TypeError as err:
             print(err)
             # user not found within COmanage - return default user
-            api_user = auth_utils_oidc_claim_sub_get(config.get('default-user', 'oidc_claim_sub'))
+            api_user = auth_utils_oidc_claim_sub_get(DEFAULT_USER_OIDC_CLAIM_SUB)
             return api_user
     else:
         return None
