@@ -11,7 +11,7 @@ from .mock_comanage_api import mock_comanage_add_new_cou, mock_comanage_remove_c
 from ..response_code.utils import run_sql_commands, dict_from_query
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 
 def comanage_people_role_attribute_sync_get(co_person_id):

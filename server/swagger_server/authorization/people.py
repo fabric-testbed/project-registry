@@ -5,7 +5,7 @@ from ..uis_api.uis_api import uis_get_uuid_from_oidc_claim_sub
 from ..response_code.utils import run_sql_commands
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 # set authorization level COUs
 FACILITY_OPERATORS = config.get('fabric-cou', 'facility_operators')

@@ -3,7 +3,7 @@ from configparser import ConfigParser
 from .auth_utils import get_api_person
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 # set authorization level COUs
 FACILITY_OPERATORS = config.get('fabric-cou', 'facility_operators')

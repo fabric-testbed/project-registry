@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 # set default user uuid flag
 DEFAULT_USER_UUID = config.get('default-user', 'uuid')

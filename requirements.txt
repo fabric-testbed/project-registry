@@ -1,0 +1,14 @@
+connexion
+fabric-comanage-api
+flask-migrate
+flask-sqlalchemy
+psycopg2-binary
+python-dateutil # alembic[tz]
+python-dotenv
+pytz
+swagger-ui-bundle # connexion[swagger-ui]
+#
+PyJWT
+configparser
+cryptography
+uwsgi

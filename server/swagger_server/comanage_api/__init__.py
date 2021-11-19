@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 # COmanage API settings
 CO_API_USERNAME = config.get('comanage-api', 'api_username')

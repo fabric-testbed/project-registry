@@ -7,6 +7,15 @@ from flask import request
 from pytz import timezone
 from swagger_server.models.project_long import ProjectLong  # noqa: E501
 from swagger_server.models.project_short import ProjectShort  # noqa: E501
+from swagger_server.models.people_short import PeopleShort
+
+from swagger_server.db_models import FabricProjects, FabricPeople, FabricTags
+from .local_controller import get_person_by_uuid, get_project_owners, get_project_members, get_project_tags, \
+    get_project_long_by_uuid, add_tags_by_project_uuid, remove_tags_by_project_uuid, update_project_by_project_uuid, \
+    add_members_by_project_uuid, get_project_short_by_uuid, add_owners_by_project_uuid, \
+    remove_members_by_project_uuid, remove_owners_by_project_uuid
+
+from swagger_server.db import db
 
 from . import DEFAULT_USER_UUID, DEFAULT_USER_NAME, DEFAULT_USER_EMAIL
 from .people_controller import people_uuid_get
@@ -27,7 +36,7 @@ from ..comanage_api.comanage_api import comanage_projects_add_members_put, coman
     comanage_check_for_new_users
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 
 def projects_add_members_put(uuid, project_members=None):  # noqa: E501
@@ -42,6 +51,20 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    fab_project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
+    if fab_project:
+        add_members_by_project_uuid(project_uuid=uuid, project_members=project_members)
+    else:
+        return cors_response(
+            request=request,
+            status_code=404,
+            body='Project UUID reference Not Found: {0}'.format(str(uuid)),
+            x_error='Not Found'
+        )
+
+    return get_project_long_by_uuid(uuid)
+
+
     # validate project reference as provided by uuid
     project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
@@ -61,96 +84,96 @@ def projects_add_members_put(uuid, project_members=None):  # noqa: E501
             x_error='Authorization is missing or invalid'
         )
 
-    # check for new comanage users
-    if not comanage_check_for_new_users():
-        return cors_response(
-            request=request,
-            status_code=500,
-            body='COmanage Error - Unable to retrieve co_people data',
-            x_error='Unable to retrieve co_people data'
-        )
-
-    # attempt to resolve any missing people uuids
-    resolve_empty_people_uuid()
-
-    # validate new members reference as provided by project_members
-    if project_members:
-        project_members_new, project_members_unknown = validate_project_members_list(project_members, project_id)
-        if project_members_unknown:
-            return cors_response(
-                request=request,
-                status_code=400,
-                body = 'Project member UUID reference Not Found: {0}'.format(', '.join(project_members_unknown)),
-                x_error = 'Project member UUID Unknown'
-            )
-    else:
-        project_members_new = []
-
-    # add new project members to comanage group
-    sql_list = []
-    if project_members_new:
-        if not comanage_projects_add_members_put(uuid, project_members_new):
-            return cors_response(
-                request=request,
-                status_code=500,
-                body='Unable to add members: {0}'.format(str(uuid)),
-                x_error='Unable to add members in COmanage'
-            )
-
-        # get role_name and cou_id for -pm
-        role_name_pm = str(uuid) + '-pm'
-        sql = """
-        SELECT id from comanage_cous WHERE name = '{0}';
-        """.format(role_name_pm)
-        try:
-            cou_id_pm = dict_from_query(sql)[0].get('id')
-        except KeyError or IndexError as err:
-            print(err)
-            return cors_response(
-                request=request,
-                status_code=500,
-                body='Unable to add members: {0}'.format(str(uuid)),
-                x_error='Unable to add members in COmanage'
-            )
-
-        # add new members to database
-        for person_uuid in project_members_new:
-            if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
-                try:
-                    # get people id
-                    sql = """
-                    SELECT id from fabric_people WHERE uuid = '{0}';
-                    """.format(person_uuid)
-                    dfq = dict_from_query(sql)
-                    try:
-                        people_id = dfq[0].get('id')
-                    except IndexError or KeyError or TypeError as err:
-                        print(err)
-                        return cors_response(
-                            request=request,
-                            status_code=404,
-                            body='Person UUID Not Found: {0}'.format(str(person_uuid)),
-                            x_error='Person UUID Not Found'
-                        )
-
-                    # add to project_members table
-                    sql = """
-                    INSERT INTO project_members(projects_id, people_id)
-                    VALUES ({0}, '{1}')
-                    ON CONFLICT ON CONSTRAINT project_members_duplicate
-                    DO NOTHING
-                    """.format(project_id, people_id)
-                    sql_list.append(sql)
-
-                except (Exception, psycopg2.DatabaseError) as error:
-                    print(error)
-
-    # add new project members to database
-    commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to add project members data")
-    run_sql_commands(commands)
-
-    return projects_uuid_get(uuid)
+    # # check for new comanage users
+    # if not comanage_check_for_new_users():
+    #     return cors_response(
+    #         request=request,
+    #         status_code=500,
+    #         body='COmanage Error - Unable to retrieve co_people data',
+    #         x_error='Unable to retrieve co_people data'
+    #     )
+    #
+    # # attempt to resolve any missing people uuids
+    # resolve_empty_people_uuid()
+    #
+    # # validate new members reference as provided by project_members
+    # if project_members:
+    #     project_members_new, project_members_unknown = validate_project_members_list(project_members, project_id)
+    #     if project_members_unknown:
+    #         return cors_response(
+    #             request=request,
+    #             status_code=400,
+    #             body = 'Project member UUID reference Not Found: {0}'.format(', '.join(project_members_unknown)),
+    #             x_error = 'Project member UUID Unknown'
+    #         )
+    # else:
+    #     project_members_new = []
+    #
+    # # add new project members to comanage group
+    # sql_list = []
+    # if project_members_new:
+    #     if not comanage_projects_add_members_put(uuid, project_members_new):
+    #         return cors_response(
+    #             request=request,
+    #             status_code=500,
+    #             body='Unable to add members: {0}'.format(str(uuid)),
+    #             x_error='Unable to add members in COmanage'
+    #         )
+    #
+    #     # get role_name and cou_id for -pm
+    #     role_name_pm = str(uuid) + '-pm'
+    #     sql = """
+    #     SELECT id from comanage_cous WHERE name = '{0}';
+    #     """.format(role_name_pm)
+    #     try:
+    #         cou_id_pm = dict_from_query(sql)[0].get('id')
+    #     except KeyError or IndexError as err:
+    #         print(err)
+    #         return cors_response(
+    #             request=request,
+    #             status_code=500,
+    #             body='Unable to add members: {0}'.format(str(uuid)),
+    #             x_error='Unable to add members in COmanage'
+    #         )
+    #
+    #     # add new members to database
+    #     for person_uuid in project_members_new:
+    #         if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
+    #             try:
+    #                 # get people id
+    #                 sql = """
+    #                 SELECT id from fabric_people WHERE uuid = '{0}';
+    #                 """.format(person_uuid)
+    #                 dfq = dict_from_query(sql)
+    #                 try:
+    #                     people_id = dfq[0].get('id')
+    #                 except IndexError or KeyError or TypeError as err:
+    #                     print(err)
+    #                     return cors_response(
+    #                         request=request,
+    #                         status_code=404,
+    #                         body='Person UUID Not Found: {0}'.format(str(person_uuid)),
+    #                         x_error='Person UUID Not Found'
+    #                     )
+    #
+    #                 # add to project_members table
+    #                 sql = """
+    #                 INSERT INTO project_members(projects_id, people_id)
+    #                 VALUES ({0}, '{1}')
+    #                 ON CONFLICT ON CONSTRAINT project_members_duplicate
+    #                 DO NOTHING
+    #                 """.format(project_id, people_id)
+    #                 sql_list.append(sql)
+    #
+    #             except (Exception, psycopg2.DatabaseError) as error:
+    #                 print(error)
+    #
+    # # add new project members to database
+    # commands = tuple(i for i in sql_list)
+    # print("[INFO] attempt to add project members data")
+    # run_sql_commands(commands)
+    #
+    # return projects_uuid_get(uuid)
 
 
 def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
@@ -165,6 +188,20 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    fab_project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
+    if fab_project:
+        add_owners_by_project_uuid(project_uuid=uuid, project_owners=project_owners)
+    else:
+        return cors_response(
+            request=request,
+            status_code=404,
+            body='Project UUID reference Not Found: {0}'.format(str(uuid)),
+            x_error='Not Found'
+        )
+
+    return get_project_long_by_uuid(uuid)
+
+
     # validate project reference as provided by uuid
     project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
@@ -184,112 +221,112 @@ def projects_add_owners_put(uuid, project_owners=None):  # noqa: E501
             x_error='Authorization information is missing or invalid'
         )
 
-    # check for new comanage users
-    if not comanage_check_for_new_users():
-        return cors_response(
-            request=request,
-            status_code=500,
-            body='COmanage Error - Unable to retrieve co_people data',
-            x_error='Unable to retrieve co_people data'
-        )
-
-    # resolve any missing people uuids
-    resolve_empty_people_uuid()
-
-    # validate new owners reference as provided by project_members
-    if project_owners:
-        project_owners_new, project_owners_unknown = validate_project_members_list(project_owners, project_id)
-        if project_owners_unknown:
-            return cors_response(
-                request=request,
-                status_code=400,
-                body='Project owner UUID reference Not Found: {0}'.format(', '.join(project_owners_unknown)),
-                x_error='Project owner UUID Unknown'
-            )
-    else:
-        project_owners_new = []
-
-    sql_list = []
-    if project_owners_new:
-        # copy project_members from project_owners_new
-        project_members = project_owners_new.copy()
-
-        # validate new members reference as provided by project_members
-        if project_members:
-            project_members_new, project_members_unknown = validate_project_members_list(project_members, project_id)
-            if project_members_unknown:
-                return cors_response(
-                    request=request,
-                    status_code=400,
-                    body='Project member UUID reference Not Found: {0}'.format(', '.join(project_members_unknown)),
-                    x_error='Project member UUID Unknown'
-                )
-        else:
-            project_members_new = []
-
-        # comanage project owners role
-        if not comanage_projects_add_owners_put(uuid, project_owners_new):
-            return cors_response(
-                request=request,
-                status_code=500,
-                body='Unable to add owners: {0}'.format(str(uuid)),
-                x_error='Unable to add owners in COmanage'
-            )
-
-        # comanage project memebers role
-        if not comanage_projects_add_members_put(uuid, project_members_new):
-            return cors_response(
-                request=request,
-                status_code=500,
-                body='Unable to add members: {0}'.format(str(uuid)),
-                x_error='Unable to add members in COmanage'
-            )
-
-        for person_uuid in project_owners:
-            if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
-                try:
-                    # get people id
-                    sql = """
-                    SELECT id FROM fabric_people WHERE uuid = '{0}';
-                    """.format(person_uuid)
-                    dfq = dict_from_query(sql)
-                    try:
-                        people_id = dfq[0].get('id')
-                    except IndexError or KeyError or TypeError as err:
-                        print(err)
-                        return cors_response(
-                            request=request,
-                            status_code=404,
-                            body='Person UUID Not Found: {0}'.format(str(person_uuid)),
-                            x_error='Person UUID Not Found'
-                        )
-
-                    # add to project_owners table
-                    sql = """
-                    INSERT INTO project_owners(projects_id, people_id)
-                    VALUES ({0}, '{1}')
-                    ON CONFLICT ON CONSTRAINT project_owners_duplicate
-                    DO NOTHING
-                    """.format(project_id, people_id)
-                    sql_list.append(sql)
-
-                    # add to project_members table
-                    sql = """
-                    INSERT INTO project_members(projects_id, people_id)
-                    VALUES ({0}, '{1}')
-                    ON CONFLICT ON CONSTRAINT project_members_duplicate
-                    DO NOTHING
-                    """.format(project_id, people_id)
-                    sql_list.append(sql)
-
-                except (Exception, psycopg2.DatabaseError) as error:
-                    print(error)
-
-    commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to add project owners data")
-    run_sql_commands(commands)
-
-    return projects_uuid_get(uuid)
+    # # check for new comanage users
+    # if not comanage_check_for_new_users():
+    #     return cors_response(
+    #         request=request,
+    #         status_code=500,
+    #         body='COmanage Error - Unable to retrieve co_people data',
+    #         x_error='Unable to retrieve co_people data'
+    #     )
+    #
+    # # resolve any missing people uuids
+    # resolve_empty_people_uuid()
+    #
+    # # validate new owners reference as provided by project_members
+    # if project_owners:
+    #     project_owners_new, project_owners_unknown = validate_project_members_list(project_owners, project_id)
+    #     if project_owners_unknown:
+    #         return cors_response(
+    #             request=request,
+    #             status_code=400,
+    #             body='Project owner UUID reference Not Found: {0}'.format(', '.join(project_owners_unknown)),
+    #             x_error='Project owner UUID Unknown'
+    #         )
+    # else:
+    #     project_owners_new = []
+    #
+    # sql_list = []
+    # if project_owners_new:
+    #     # copy project_members from project_owners_new
+    #     project_members = project_owners_new.copy()
+    #
+    #     # validate new members reference as provided by project_members
+    #     if project_members:
+    #         project_members_new, project_members_unknown = validate_project_members_list(project_members, project_id)
+    #         if project_members_unknown:
+    #             return cors_response(
+    #                 request=request,
+    #                 status_code=400,
+    #                 body='Project member UUID reference Not Found: {0}'.format(', '.join(project_members_unknown)),
+    #                 x_error='Project member UUID Unknown'
+    #             )
+    #     else:
+    #         project_members_new = []
+    #
+    #     # comanage project owners role
+    #     if not comanage_projects_add_owners_put(uuid, project_owners_new):
+    #         return cors_response(
+    #             request=request,
+    #             status_code=500,
+    #             body='Unable to add owners: {0}'.format(str(uuid)),
+    #             x_error='Unable to add owners in COmanage'
+    #         )
+    #
+    #     # comanage project memebers role
+    #     if not comanage_projects_add_members_put(uuid, project_members_new):
+    #         return cors_response(
+    #             request=request,
+    #             status_code=500,
+    #             body='Unable to add members: {0}'.format(str(uuid)),
+    #             x_error='Unable to add members in COmanage'
+    #         )
+    #
+    #     for person_uuid in project_owners:
+    #         if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
+    #             try:
+    #                 # get people id
+    #                 sql = """
+    #                 SELECT id FROM fabric_people WHERE uuid = '{0}';
+    #                 """.format(person_uuid)
+    #                 dfq = dict_from_query(sql)
+    #                 try:
+    #                     people_id = dfq[0].get('id')
+    #                 except IndexError or KeyError or TypeError as err:
+    #                     print(err)
+    #                     return cors_response(
+    #                         request=request,
+    #                         status_code=404,
+    #                         body='Person UUID Not Found: {0}'.format(str(person_uuid)),
+    #                         x_error='Person UUID Not Found'
+    #                     )
+    #
+    #                 # add to project_owners table
+    #                 sql = """
+    #                 INSERT INTO project_owners(projects_id, people_id)
+    #                 VALUES ({0}, '{1}')
+    #                 ON CONFLICT ON CONSTRAINT project_owners_duplicate
+    #                 DO NOTHING
+    #                 """.format(project_id, people_id)
+    #                 sql_list.append(sql)
+    #
+    #                 # add to project_members table
+    #                 sql = """
+    #                 INSERT INTO project_members(projects_id, people_id)
+    #                 VALUES ({0}, '{1}')
+    #                 ON CONFLICT ON CONSTRAINT project_members_duplicate
+    #                 DO NOTHING
+    #                 """.format(project_id, people_id)
+    #                 sql_list.append(sql)
+    #
+    #             except (Exception, psycopg2.DatabaseError) as error:
+    #                 print(error)
+    #
+    # commands = tuple(i for i in sql_list)
+    # print("[INFO] attempt to add project owners data")
+    # run_sql_commands(commands)
+    #
+    # return projects_uuid_get(uuid)
 
 
 def projects_add_tags_put(uuid, tags=None):  # noqa: E501
@@ -304,17 +341,30 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
-    # validate project reference as provided by uuid
-    project_id, project_name, created_by = validate_project_reference(uuid)
-    if project_id == -1:
+    fab_project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
+    if fab_project:
+        add_tags_by_project_uuid(project_uuid=uuid, tags=tags)
+    else:
         return cors_response(
             request=request,
-            status_code=400,
+            status_code=404,
             body='Project UUID reference Not Found: {0}'.format(str(uuid)),
-            x_error='Project UUID Unknown'
+            x_error='Not Found'
         )
 
-    sql_list = []
+    return get_project_long_by_uuid(uuid)
+
+    # validate project reference as provided by uuid
+    # project_id, project_name, created_by = validate_project_reference(uuid)
+    # if project_id == -1:
+    #     return cors_response(
+    #         request=request,
+    #         status_code=400,
+    #         body='Project UUID reference Not Found: {0}'.format(str(uuid)),
+    #         x_error='Project UUID Unknown'
+    #     )
+    #
+    # sql_list = []
 
     # check authorization
     if not authorize_projects_add_tags_put(request.headers):
@@ -325,41 +375,41 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
             x_error='Authorization information is missing or invalid'
         )
 
-    # check for new comanage users
-    if not comanage_check_for_new_users():
-        return cors_response(
-            request=request,
-            status_code=500,
-            body='COmanage Error - Unable to retrieve co_people data',
-            x_error='Unable to retrieve co_people data'
-        )
-
-    # resolve any missing people uuids
-    resolve_empty_people_uuid()
-
-    if tags:
-        for tag in tags:
-            if len(tag) > 0:
-                sql = """
-                INSERT INTO tags(projects_id, tag)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT tags_duplicate
-                DO NOTHING
-                """.format(project_id, tag.replace("'", "''"))
-                sql_list.append(sql)
-            else:
-                return cors_response(
-                    request=request,
-                    status_code=400,
-                    body='Bad Request, Tag not specified or is otherwise blank',
-                    x_error='Bad Request, Tag not specified or is otherwise blank'
-                )
-
-    commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to update tags data")
-    run_sql_commands(commands)
-
-    return projects_uuid_get(uuid)
+    # # check for new comanage users
+    # if not comanage_check_for_new_users():
+    #     return cors_response(
+    #         request=request,
+    #         status_code=500,
+    #         body='COmanage Error - Unable to retrieve co_people data',
+    #         x_error='Unable to retrieve co_people data'
+    #     )
+    #
+    # # resolve any missing people uuids
+    # resolve_empty_people_uuid()
+    #
+    # if tags:
+    #     for tag in tags:
+    #         if len(tag) > 0:
+    #             sql = """
+    #             INSERT INTO tags(projects_id, tag)
+    #             VALUES ({0}, '{1}')
+    #             ON CONFLICT ON CONSTRAINT tags_duplicate
+    #             DO NOTHING
+    #             """.format(project_id, tag.replace("'", "''"))
+    #             sql_list.append(sql)
+    #         else:
+    #             return cors_response(
+    #                 request=request,
+    #                 status_code=400,
+    #                 body='Bad Request, Tag not specified or is otherwise blank',
+    #                 x_error='Bad Request, Tag not specified or is otherwise blank'
+    #             )
+    #
+    # commands = tuple(i for i in sql_list)
+    # print("[INFO] attempt to update tags data")
+    # run_sql_commands(commands)
+    #
+    # return projects_uuid_get(uuid)
 
 
 def projects_create_post(name, description, facility, tags=None, project_owners=None,
@@ -749,6 +799,22 @@ def projects_get(project_name=None):  # noqa: E501
 
     :rtype: ProjectShort
     """
+    # response = {'ResponseType': 'ProjectShort'}
+    fab_projects = []
+    if project_name:
+        projects = FabricProjects.query.filter(
+            FabricProjects.name.ilike("%" + project_name + "%")
+        ).order_by(FabricProjects.name).all()
+    else:
+        projects = FabricProjects.query.order_by(FabricProjects.name).all()
+    for project in projects:
+        fab_projects.append(get_project_short_by_uuid(project_uuid=project.__asdict__().get('uuid')))
+
+    # response['FabricProjects'] = fab_projects
+    response = fab_projects
+
+    return response
+
     # check authorization
     if not authorize_projects_get(request.headers):
         return cors_response(
@@ -757,45 +823,45 @@ def projects_get(project_name=None):  # noqa: E501
             body='Authorization information is missing or invalid: /projects',
             x_error='Authorization information is missing or invalid'
         )
-    # response as array of ProjectShort()
-    response = []
-
-    sql = """
-    SELECT name, description, facility, uuid, created_by, created_time FROM fabric_projects
-    """
-
-    if project_name:
-        sql = sql + """
-        WHERE name ILIKE '%{}%'
-        """.format(str(project_name))
-
-    sql = sql + """
-    ORDER BY name;
-    """
-    dfq = dict_from_query(sql)
-
-    # construct response object
-    if dfq:
-        for project in dfq:
-            # project object
-            ps = ProjectShort()
-
-            # project created by
-            pc = people_uuid_get(project.get('created_by'))
-            try:
-                created_by = {'uuid': pc.uuid, 'name': pc.name, 'email': pc.email}
-            except AttributeError:
-                created_by = {'uuid': DEFAULT_USER_UUID, 'name': DEFAULT_USER_NAME, 'email': DEFAULT_USER_EMAIL}
-
-            ps.name = project.get('name')
-            ps.description = project.get('description')
-            ps.facility = project.get('facility')
-            ps.uuid = project.get('uuid')
-            ps.created_by = created_by
-            ps.created_time = project.get('created_time')
-            response.append(ps)
-
-    return filter_projects_get(request.headers, response)
+    # # response as array of ProjectShort()
+    # response = []
+    #
+    # sql = """
+    # SELECT name, description, facility, uuid, created_by, created_time FROM fabric_projects
+    # """
+    #
+    # if project_name:
+    #     sql = sql + """
+    #     WHERE name ILIKE '%{}%'
+    #     """.format(str(project_name))
+    #
+    # sql = sql + """
+    # ORDER BY name;
+    # """
+    # dfq = dict_from_query(sql)
+    #
+    # # construct response object
+    # if dfq:
+    #     for project in dfq:
+    #         # project object
+    #         ps = ProjectShort()
+    #
+    #         # project created by
+    #         pc = people_uuid_get(project.get('created_by'))
+    #         try:
+    #             created_by = {'uuid': pc.uuid, 'name': pc.name, 'email': pc.email}
+    #         except AttributeError:
+    #             created_by = {'uuid': DEFAULT_USER_UUID, 'name': DEFAULT_USER_NAME, 'email': DEFAULT_USER_EMAIL}
+    #
+    #         ps.name = project.get('name')
+    #         ps.description = project.get('description')
+    #         ps.facility = project.get('facility')
+    #         ps.uuid = project.get('uuid')
+    #         ps.created_by = created_by
+    #         ps.created_time = project.get('created_time')
+    #         response.append(ps)
+    #
+    # return filter_projects_get(request.headers, response)
 
 
 def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
@@ -810,6 +876,19 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    fab_project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
+    if fab_project:
+        remove_members_by_project_uuid(project_uuid=uuid, project_members=project_members)
+    else:
+        return cors_response(
+            request=request,
+            status_code=404,
+            body='Project UUID reference Not Found: {0}'.format(str(uuid)),
+            x_error='Not Found'
+        )
+
+    return get_project_long_by_uuid(uuid)
+
     # validate project reference as provided by uuid
     project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
@@ -831,75 +910,75 @@ def projects_remove_members_put(uuid, project_members=None):  # noqa: E501
             x_error='Authorization information is missing or invalid'
         )
 
-    if project_members:
-        project_members = filter_out_nonexisting_project_members(list(set(project_members)), project_id)
-        if not comanage_projects_remove_members_put(uuid, project_members):
-            return cors_response(
-                request=request,
-                status_code=501,
-                body='Unable to remove members: {0}'.format(str(uuid)),
-                x_error='Unable to remove members in COmanage'
-            )
-
-        for person_uuid in project_members:
-            if person_uuid != DEFAULT_USER_UUID:
-                try:
-                    # get people id
-                    sql = """
-                    SELECT id FROM fabric_people WHERE uuid = '{0}';
-                    """.format(person_uuid)
-                    dfq = dict_from_query(sql)
-                    try:
-                        people_id = dfq[0].get('id')
-                    except IndexError or KeyError or TypeError as err:
-                        print(err)
-                        return cors_response(
-                            request=request,
-                            status_code=501,
-                            body='Person UUID Not Found: {0}'.format(str(person_uuid)),
-                            x_error='Person UUID Not Found'
-                        )
-
-                    # remove people_id from project_members table
-                    sql = """
-                    DELETE FROM project_members
-                    WHERE project_members.projects_id = {0} AND project_members.people_id = {1};
-                    """.format(project_id, people_id)
-                    sql_list.append(sql)
-
-                    # check if person is also in project_owners
-                    sql_po_check = """
-                    SELECT EXISTS (
-                    SELECT 1 FROM project_owners 
-                    WHERE project_owners.projects_id = {0} and project_owners.people_id = {1}
-                    );
-                    """.format(project_id, people_id)
-                    dfq = dict_from_query(sql_po_check)
-                    if dfq[0].get('exists'):
-                        project_owners = [person_uuid]
-                        if not comanage_projects_remove_owners_put(uuid, project_owners):
-                            return cors_response(
-                                request=request,
-                                status_code=501,
-                                body='Unable to remove owners: {0}'.format(str(uuid)),
-                                x_error='Unable to remove owners in COmanage'
-                            )
-
-                        # remove people_id from project_owners table
-                        sql = """
-                        DELETE FROM project_owners
-                        WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
-                        """.format(project_id, people_id)
-                        sql_list.append(sql)
-
-                except (Exception, psycopg2.DatabaseError) as error:
-                    print(error)
-
-    commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to remove project members data")
-    run_sql_commands(commands)
-
-    return projects_uuid_get(uuid)
+    # if project_members:
+    #     project_members = filter_out_nonexisting_project_members(list(set(project_members)), project_id)
+    #     if not comanage_projects_remove_members_put(uuid, project_members):
+    #         return cors_response(
+    #             request=request,
+    #             status_code=501,
+    #             body='Unable to remove members: {0}'.format(str(uuid)),
+    #             x_error='Unable to remove members in COmanage'
+    #         )
+    #
+    #     for person_uuid in project_members:
+    #         if person_uuid != DEFAULT_USER_UUID:
+    #             try:
+    #                 # get people id
+    #                 sql = """
+    #                 SELECT id FROM fabric_people WHERE uuid = '{0}';
+    #                 """.format(person_uuid)
+    #                 dfq = dict_from_query(sql)
+    #                 try:
+    #                     people_id = dfq[0].get('id')
+    #                 except IndexError or KeyError or TypeError as err:
+    #                     print(err)
+    #                     return cors_response(
+    #                         request=request,
+    #                         status_code=501,
+    #                         body='Person UUID Not Found: {0}'.format(str(person_uuid)),
+    #                         x_error='Person UUID Not Found'
+    #                     )
+    #
+    #                 # remove people_id from project_members table
+    #                 sql = """
+    #                 DELETE FROM project_members
+    #                 WHERE project_members.projects_id = {0} AND project_members.people_id = {1};
+    #                 """.format(project_id, people_id)
+    #                 sql_list.append(sql)
+    #
+    #                 # check if person is also in project_owners
+    #                 sql_po_check = """
+    #                 SELECT EXISTS (
+    #                 SELECT 1 FROM project_owners
+    #                 WHERE project_owners.projects_id = {0} and project_owners.people_id = {1}
+    #                 );
+    #                 """.format(project_id, people_id)
+    #                 dfq = dict_from_query(sql_po_check)
+    #                 if dfq[0].get('exists'):
+    #                     project_owners = [person_uuid]
+    #                     if not comanage_projects_remove_owners_put(uuid, project_owners):
+    #                         return cors_response(
+    #                             request=request,
+    #                             status_code=501,
+    #                             body='Unable to remove owners: {0}'.format(str(uuid)),
+    #                             x_error='Unable to remove owners in COmanage'
+    #                         )
+    #
+    #                     # remove people_id from project_owners table
+    #                     sql = """
+    #                     DELETE FROM project_owners
+    #                     WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
+    #                     """.format(project_id, people_id)
+    #                     sql_list.append(sql)
+    #
+    #             except (Exception, psycopg2.DatabaseError) as error:
+    #                 print(error)
+    #
+    # commands = tuple(i for i in sql_list)
+    # print("[INFO] attempt to remove project members data")
+    # run_sql_commands(commands)
+    #
+    # return projects_uuid_get(uuid)
 
 
 def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
@@ -914,6 +993,19 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    fab_project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
+    if fab_project:
+        remove_owners_by_project_uuid(project_uuid=uuid, project_owners=project_owners)
+    else:
+        return cors_response(
+            request=request,
+            status_code=404,
+            body='Project UUID reference Not Found: {0}'.format(str(uuid)),
+            x_error='Not Found'
+        )
+
+    return get_project_long_by_uuid(uuid)
+
     # validate project reference as provided by uuid
     project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
@@ -935,49 +1027,49 @@ def projects_remove_owners_put(uuid, project_owners=None):  # noqa: E501
             x_error='Authorization information is missing or invalid'
         )
 
-    if project_owners:
-        project_owners = filter_out_nonexisting_project_owners(list(set(project_owners)), project_id)
-        if not comanage_projects_remove_owners_put(uuid, project_owners):
-            return cors_response(
-                request=request,
-                status_code=501,
-                body='Unable to remove owners: {0}'.format(str(uuid)),
-                x_error='Unable to remove owners in COmanage'
-            )
-        for person_uuid in project_owners:
-            if person_uuid != DEFAULT_USER_UUID:
-                try:
-                    # get people id
-                    sql = """
-                    SELECT id FROM fabric_people WHERE uuid = '{0}';
-                    """.format(person_uuid)
-                    dfq = dict_from_query(sql)
-                    try:
-                        people_id = dfq[0].get('id')
-                    except IndexError or KeyError or TypeError as err:
-                        print(err)
-                        return cors_response(
-                            request=request,
-                            status_code=404,
-                            body='Person UUID Not Found: {0}'.format(str(person_uuid)),
-                            x_error='Person UUID Not Found'
-                        )
-
-                    # remove people_id from project_owners table
-                    sql = """
-                    DELETE FROM project_owners
-                    WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
-                    """.format(project_id, people_id)
-                    sql_list.append(sql)
-
-                except (Exception, psycopg2.DatabaseError) as error:
-                    print(error)
-
-    commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to remove project owners data")
-    run_sql_commands(commands)
-
-    return projects_uuid_get(uuid)
+    # if project_owners:
+    #     project_owners = filter_out_nonexisting_project_owners(list(set(project_owners)), project_id)
+    #     if not comanage_projects_remove_owners_put(uuid, project_owners):
+    #         return cors_response(
+    #             request=request,
+    #             status_code=501,
+    #             body='Unable to remove owners: {0}'.format(str(uuid)),
+    #             x_error='Unable to remove owners in COmanage'
+    #         )
+    #     for person_uuid in project_owners:
+    #         if person_uuid != DEFAULT_USER_UUID:
+    #             try:
+    #                 # get people id
+    #                 sql = """
+    #                 SELECT id FROM fabric_people WHERE uuid = '{0}';
+    #                 """.format(person_uuid)
+    #                 dfq = dict_from_query(sql)
+    #                 try:
+    #                     people_id = dfq[0].get('id')
+    #                 except IndexError or KeyError or TypeError as err:
+    #                     print(err)
+    #                     return cors_response(
+    #                         request=request,
+    #                         status_code=404,
+    #                         body='Person UUID Not Found: {0}'.format(str(person_uuid)),
+    #                         x_error='Person UUID Not Found'
+    #                     )
+    #
+    #                 # remove people_id from project_owners table
+    #                 sql = """
+    #                 DELETE FROM project_owners
+    #                 WHERE project_owners.projects_id = {0} AND project_owners.people_id = {1};
+    #                 """.format(project_id, people_id)
+    #                 sql_list.append(sql)
+    #
+    #             except (Exception, psycopg2.DatabaseError) as error:
+    #                 print(error)
+    #
+    # commands = tuple(i for i in sql_list)
+    # print("[INFO] attempt to remove project owners data")
+    # run_sql_commands(commands)
+    #
+    # return projects_uuid_get(uuid)
 
 
 def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
@@ -992,6 +1084,19 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    fab_project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
+    if fab_project:
+        remove_tags_by_project_uuid(project_uuid=uuid, tags=tags)
+    else:
+        return cors_response(
+            request=request,
+            status_code=404,
+            body='Project UUID reference Not Found: {0}'.format(str(uuid)),
+            x_error='Not Found'
+        )
+
+    return get_project_long_by_uuid(uuid)
+
     # validate project reference as provided by uuid
     project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
@@ -1002,39 +1107,39 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
             x_error='Project UUID Unknown'
         )
 
-    sql_list = []
-
-    # check authorization
-    if not authorize_projects_remove_tags_put(request.headers, uuid, created_by):
-        return cors_response(
-            request=request,
-            status_code=401,
-            body='Authorization information is missing or invalid: /projects/remove_tags',
-            x_error='Authorization information is missing or invalid'
-        )
-
-    if tags:
-        print(tags)
-        for tag in tags:
-            if len(tag) > 0:
-                sql = """
-                DELETE FROM tags
-                WHERE tags.projects_id = {0} AND tags.tag = '{1}'
-                """.format(project_id, tag)
-                sql_list.append(sql)
-            else:
-                return cors_response(
-                    request=request,
-                    status_code=400,
-                    body='Bad Request, Tag not specified or is otherwise blank',
-                    x_error='Bad Request, Tag not specified or is otherwise blank'
-                )
-
-    commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to remove tags data")
-    run_sql_commands(commands)
-
-    return projects_uuid_get(uuid)
+    # sql_list = []
+    #
+    # # check authorization
+    # if not authorize_projects_remove_tags_put(request.headers, uuid, created_by):
+    #     return cors_response(
+    #         request=request,
+    #         status_code=401,
+    #         body='Authorization information is missing or invalid: /projects/remove_tags',
+    #         x_error='Authorization information is missing or invalid'
+    #     )
+    #
+    # if tags:
+    #     print(tags)
+    #     for tag in tags:
+    #         if len(tag) > 0:
+    #             sql = """
+    #             DELETE FROM tags
+    #             WHERE tags.projects_id = {0} AND tags.tag = '{1}'
+    #             """.format(project_id, tag)
+    #             sql_list.append(sql)
+    #         else:
+    #             return cors_response(
+    #                 request=request,
+    #                 status_code=400,
+    #                 body='Bad Request, Tag not specified or is otherwise blank',
+    #                 x_error='Bad Request, Tag not specified or is otherwise blank'
+    #             )
+    #
+    # commands = tuple(i for i in sql_list)
+    # print("[INFO] attempt to remove tags data")
+    # run_sql_commands(commands)
+    #
+    # return projects_uuid_get(uuid)
 
 
 def projects_update_put(uuid, name=None, description=None, facility=None):  # noqa: E501
@@ -1053,6 +1158,20 @@ def projects_update_put(uuid, name=None, description=None, facility=None):  # no
 
     :rtype: ProjectLong
     """
+    fab_project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
+    if fab_project:
+        update_project_by_project_uuid(project_uuid=uuid, name=name, description=description, facility=facility)
+    else:
+        return cors_response(
+            request=request,
+            status_code=404,
+            body='Project UUID reference Not Found: {0}'.format(str(uuid)),
+            x_error='Not Found'
+        )
+
+    return get_project_long_by_uuid(uuid)
+
+
     # validate project reference as provided by uuid
     project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
@@ -1074,33 +1193,33 @@ def projects_update_put(uuid, name=None, description=None, facility=None):  # no
             x_error='Authorization information is missing or invalid'
         )
 
-    if name:
-        sql = """
-        UPDATE fabric_projects
-        SET name = '{0}'
-        WHERE fabric_projects.id = {1};
-        """.format(name.replace("'", "''"), project_id)
-        sql_list.append(sql)
-    if description:
-        sql = """
-        UPDATE fabric_projects
-        SET description = '{0}'
-        WHERE fabric_projects.id = {1};
-        """.format(description.replace("'", "''"), project_id)
-        sql_list.append(sql)
-    if facility:
-        sql = """
-        UPDATE fabric_projects
-        SET facility = '{0}'
-        WHERE fabric_projects.id = {1};
-        """.format(facility.replace("'", "''"), project_id)
-        sql_list.append(sql)
-
-    commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to update project data")
-    run_sql_commands(commands)
-
-    return projects_uuid_get(uuid)
+    # if name:
+    #     sql = """
+    #     UPDATE fabric_projects
+    #     SET name = '{0}'
+    #     WHERE fabric_projects.id = {1};
+    #     """.format(name.replace("'", "''"), project_id)
+    #     sql_list.append(sql)
+    # if description:
+    #     sql = """
+    #     UPDATE fabric_projects
+    #     SET description = '{0}'
+    #     WHERE fabric_projects.id = {1};
+    #     """.format(description.replace("'", "''"), project_id)
+    #     sql_list.append(sql)
+    # if facility:
+    #     sql = """
+    #     UPDATE fabric_projects
+    #     SET facility = '{0}'
+    #     WHERE fabric_projects.id = {1};
+    #     """.format(facility.replace("'", "''"), project_id)
+    #     sql_list.append(sql)
+    #
+    # commands = tuple(i for i in sql_list)
+    # print("[INFO] attempt to update project data")
+    # run_sql_commands(commands)
+    #
+    # return projects_uuid_get(uuid)
 
 
 def projects_uuid_get(uuid):  # noqa: E501
@@ -1113,8 +1232,28 @@ def projects_uuid_get(uuid):  # noqa: E501
 
     :rtype: ProjectLong
     """
+    # TODO: return project short if user is not member of project
+    # response = {'ResponseType': 'ProjectLong'}
+    pl = ProjectLong()
+    project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
+    if project:
+        pl = get_project_long_by_uuid(uuid)
+    else:
+        return cors_response(
+            request=request,
+            status_code=404,
+            body='UUID Not Found: {0}'.format(uuid),
+            x_error='Not Found'
+        )
+
+    # response['ProjectLong'] = pl
+    response = pl
+
+    return response
+
+
     # response as ProjectLong()
-    response = ProjectLong()
+    # response = ProjectLong()
 
     # validate project reference as provided by uuid
     project_id, project_name, created_by = validate_project_reference(uuid)
@@ -1135,63 +1274,63 @@ def projects_uuid_get(uuid):  # noqa: E501
             x_error='Authorization information is missing or invalid'
         )
 
-    # get project attributes
-    project_sql = """
-    SELECT * FROM fabric_projects
-    WHERE uuid = '{0}';
-    """.format(uuid)
-    project = dict_from_query(project_sql)[0]
-
-    # project created by
-    cb_sql = """
-    SELECT uuid, name, email FROM fabric_people
-    WHERE uuid = '{0}';
-    """.format(project.get('created_by'))
-    pc = dict_from_query(cb_sql)
-    created_by = {'uuid': pc[0].get('uuid'), 'name': pc[0].get('name'), 'email': pc[0].get('email')}
-
-    # project-owners
-    project_owners = []
-    po_sql = """
-    SELECT uuid, name, email FROM fabric_people
-    INNER JOIN project_owners ON fabric_people.id = project_owners.people_id 
-    AND project_owners.projects_id = {0};
-    """.format(project_id)
-    dfq = dict_from_query(po_sql)
-    for po in dfq:
-        project_owners.append({'uuid': po.get('uuid'), 'name': po.get('name'), 'email': po.get('email')})
-
-    # project-members
-    project_members = []
-    pm_sql = """
-    SELECT uuid, name, email FROM fabric_people
-    INNER JOIN project_members ON fabric_people.id = project_members.people_id 
-    AND project_members.projects_id = {0};
-    """.format(project_id)
-    dfq = dict_from_query(pm_sql)
-    for pm in dfq:
-        project_members.append({'uuid': pm.get('uuid'), 'name': pm.get('name'), 'email': pm.get('email')})
-
-    # tags
-    tags = []
-    tags_sql = """
-    SELECT tag FROM tags
-    WHERE projects_id = {0}
-    ORDER BY tag;
-    """.format(project_id)
-    dfq = dict_from_query(tags_sql)
-    for tag in dfq:
-        tags.append(tag.get('tag'))
-
-    # construct response object
-    response.name = project.get('name')
-    response.description = project.get('description')
-    response.facility = project.get('facility')
-    response.uuid = project.get('uuid')
-    response.created_by = created_by
-    response.created_time = project.get('created_time')
-    response.project_owners = project_owners
-    response.project_members = project_members
-    response.tags = tags
-
-    return response
+    # # get project attributes
+    # project_sql = """
+    # SELECT * FROM fabric_projects
+    # WHERE uuid = '{0}';
+    # """.format(uuid)
+    # project = dict_from_query(project_sql)[0]
+    #
+    # # project created by
+    # cb_sql = """
+    # SELECT uuid, name, email FROM fabric_people
+    # WHERE uuid = '{0}';
+    # """.format(project.get('created_by'))
+    # pc = dict_from_query(cb_sql)
+    # created_by = {'uuid': pc[0].get('uuid'), 'name': pc[0].get('name'), 'email': pc[0].get('email')}
+    #
+    # # project-owners
+    # project_owners = []
+    # po_sql = """
+    # SELECT uuid, name, email FROM fabric_people
+    # INNER JOIN project_owners ON fabric_people.id = project_owners.people_id
+    # AND project_owners.projects_id = {0};
+    # """.format(project_id)
+    # dfq = dict_from_query(po_sql)
+    # for po in dfq:
+    #     project_owners.append({'uuid': po.get('uuid'), 'name': po.get('name'), 'email': po.get('email')})
+    #
+    # # project-members
+    # project_members = []
+    # pm_sql = """
+    # SELECT uuid, name, email FROM fabric_people
+    # INNER JOIN project_members ON fabric_people.id = project_members.people_id
+    # AND project_members.projects_id = {0};
+    # """.format(project_id)
+    # dfq = dict_from_query(pm_sql)
+    # for pm in dfq:
+    #     project_members.append({'uuid': pm.get('uuid'), 'name': pm.get('name'), 'email': pm.get('email')})
+    #
+    # # tags
+    # tags = []
+    # tags_sql = """
+    # SELECT tag FROM tags
+    # WHERE projects_id = {0}
+    # ORDER BY tag;
+    # """.format(project_id)
+    # dfq = dict_from_query(tags_sql)
+    # for tag in dfq:
+    #     tags.append(tag.get('tag'))
+    #
+    # # construct response object
+    # response.name = project.get('name')
+    # response.description = project.get('description')
+    # response.facility = project.get('facility')
+    # response.uuid = project.get('uuid')
+    # response.created_by = created_by
+    # response.created_time = project.get('created_time')
+    # response.project_owners = project_owners
+    # response.project_members = project_members
+    # response.tags = tags
+    #
+    # return response

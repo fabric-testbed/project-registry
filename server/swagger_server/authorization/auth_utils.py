@@ -9,7 +9,7 @@ from ..comanage_api.comanage_api import comanage_check_for_new_users
 from ..response_code.utils import resolve_empty_people_uuid, cors_response
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 fabric_cou_set = {
     config.get('fabric-cou', 'fabric_active_users'),

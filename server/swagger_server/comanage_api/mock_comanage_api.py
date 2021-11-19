@@ -5,7 +5,7 @@ from . import CO_API_COID, CO_API_USERNAME, EMPTY_PARENT_FLAG, MOCK_ROLE_ID_FLAG
 from ..response_code.utils import dict_from_query
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 
 def mock_comanage_add_new_cou(cou_name, cou_description):

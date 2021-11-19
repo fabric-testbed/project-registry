@@ -9,7 +9,7 @@ from . import UIS_API_URL, UIS_API_PORT, COOKIE_DOMAIN, COOKIE_NAME, \
 from .mock_uis_api import mock_uis_get_uuid_from_oidc_claim_sub
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 
 def uis_get_uuid_from_oidc_claim_sub(oidc_claim_sub):

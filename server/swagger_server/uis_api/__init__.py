@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 
 config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+config.read('server/swagger_server/config/config.ini')
 
 # set UIS api variables
 COOKIE_DOMAIN = config.get('uis', 'cookie_domain')
