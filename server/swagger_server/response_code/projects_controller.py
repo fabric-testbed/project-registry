@@ -13,7 +13,7 @@ from swagger_server.db_models import FabricProjects, FabricPeople, FabricTags
 from .local_controller import get_person_by_uuid, get_project_owners, get_project_members, get_project_tags, \
     get_project_long_by_uuid, add_tags_by_project_uuid, remove_tags_by_project_uuid, update_project_by_project_uuid, \
     add_members_by_project_uuid, get_project_short_by_uuid, add_owners_by_project_uuid, \
-    remove_members_by_project_uuid, remove_owners_by_project_uuid
+    remove_members_by_project_uuid, remove_owners_by_project_uuid, project_create, project_delete
 
 from swagger_server.db import db
 
@@ -433,6 +433,16 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
 
     :rtype: ProjectLong
     """
+    # TODO: get project_creator from request
+    project_creator = '224ca0a4-ef33-400f-9022-8baddd02c208'
+    project_uuid = project_create(name=name, description=description, facility=facility, tags=tags,
+                                  project_creator=project_creator, project_owners=project_owners,
+                                  project_members=project_members)
+
+    return get_project_long_by_uuid(project_uuid)
+
+
+
     # check authorization
     if tags:
         if not authorize_projects_add_tags_put(request.headers):
@@ -451,203 +461,203 @@ def projects_create_post(name, description, facility, tags=None, project_owners=
             x_error='Authorization information is missing or invalid'
         )
 
-    # check for new comanage users
-    if not comanage_check_for_new_users():
-        return cors_response(
-            request=request,
-            status_code=500,
-            body='COmanage Error - Unable to retrieve co_people data',
-            x_error='Unable to retrieve co_people data'
-        )
-
-    # resolve any missing people uuids
-    resolve_empty_people_uuid()
-
-    # get identity for created_by
-    api_person = get_api_person(request.headers.get('X-Vouch-Idp-Idtoken'))
-    created_by = api_person.uuid
-
-    # validate new owners reference as provided by project_members
-    if project_owners:
-        project_owners.append(api_person.uuid)
-    else:
-        project_owners = [api_person.uuid]
-
-    project_owners_new, project_owners_unknown = validate_person_reference(project_owners)
-    if project_owners_unknown:
-        return cors_response(
-            request=request,
-            status_code=400,
-            body='Project owner UUID reference Not Found: {0}'.format(', '.join(project_owners_unknown)),
-            x_error='Project owner UUID Unknown'
-        )
-
-    # validate new members reference as provided by project_members
-    if project_members:
-        project_members += project_owners_new.copy()
-    else:
-        project_members = project_owners_new.copy()
-
-    project_members_new, project_members_unknown = validate_person_reference(project_members)
-    if project_members_unknown:
-        return cors_response(
-            request=request,
-            status_code=400,
-            body='Project member UUID reference Not Found: {0}'.format(', '.join(project_members_unknown)),
-            x_error='Project member UUID Unknown'
-        )
-
-    # get created_time
-    t_now = datetime.utcnow()
-    created_time = t_now.strftime("%Y-%m-%d %H:%M:%S")
-    # create new project entry
-    project_uuid = uuid4()
-    sql = """
-    INSERT INTO fabric_projects(uuid, name, description, facility, created_by, created_time)
-    VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}');
-    """.format(str(project_uuid), name.replace("'", "''"), description.replace("'", "''"), facility.replace("'", "''"),
-               created_by, created_time)
-    run_sql_commands(sql)
-
-    # validate project reference as provided by uuid
-    project_id, project_name, created_by = validate_project_reference(str(project_uuid))
-    if project_id == -1:
-        return cors_response(
-            request=request,
-            status_code=400,
-            body='Project UUID reference Not Found: {0}'.format(str(project_uuid)),
-            x_error='Project UUID Unknown'
-        )
-
-    # create comanage groups for project (uuid-po and uuid-pm)
-    if not comanage_projects_create_post(project_uuid, name):
-        return cors_response(
-            request=request,
-            status_code=500,
-            body='Unable to create project: {0}'.format(str(project_uuid)),
-            x_error='Unable to create project in COmanage'
-        )
-
-    # add projects creator to comanage uuid-pc group
-    if not comanage_projects_add_creator_put(project_uuid, [created_by]):
-        return cors_response(
-            request=request,
-            status_code=500,
-            body='Unable to add creator: {0}'.format(str(project_uuid)),
-            x_error='Unable to add creator in COmanage'
-        )
-
-    # add projects owners to comanage uuid-po group
-    if not comanage_projects_add_owners_put(project_uuid, project_owners_new):
-        return cors_response(
-            request=request,
-            status_code=500,
-            body='Unable to add owners: {0}'.format(str(project_uuid)),
-            x_error='Unable to add owners in COmanage'
-        )
-
-    # add project owners to database
-    sql_list = []
-    for person_uuid in project_owners_new:
-        if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
-            try:
-                # get people id
-                sql = """
-                SELECT id FROM fabric_people WHERE uuid = '{0}';
-                """.format(person_uuid)
-                dfq = dict_from_query(sql)
-                try:
-                    people_id = dfq[0].get('id')
-                except IndexError or KeyError or TypeError as err:
-                    print(err)
-                    projects_delete_delete(str(project_uuid))
-                    return cors_response(
-                        request=request,
-                        status_code=400,
-                        body='Person UUID Not Found: {0}'.format(str(person_uuid)),
-                        x_error='Person UUID Not Found'
-                    )
-
-                # add to project_owners table
-                sql = """
-                INSERT INTO project_owners(projects_id, people_id)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT project_owners_duplicate
-                DO NOTHING
-                """.format(project_id, people_id)
-                sql_list.append(sql)
-
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-
-    # add projects members to comanage uuid-pm group
-    if not comanage_projects_add_members_put(project_uuid, project_members_new):
-        return cors_response(
-            request=request,
-            status_code=500,
-            body='Unable to add members: {0}'.format(str(project_uuid)),
-            x_error='Unable to add members in COmanage'
-        )
-
-    # add project members to database
-    for person_uuid in project_members_new:
-        if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
-            try:
-                # get people id
-                sql = """
-                SELECT id FROM fabric_people WHERE uuid = '{0}';
-                """.format(person_uuid)
-                dfq = dict_from_query(sql)
-                try:
-                    people_id = dfq[0].get('id')
-                except IndexError or KeyError or TypeError as err:
-                    print(err)
-                    projects_delete_delete(str(project_uuid))
-                    return cors_response(
-                        request=request,
-                        status_code=404,
-                        body='Person UUID Not Found: {0}'.format(str(person_uuid)),
-                        x_error='Person UUID Not Found'
-                    )
-
-                # add to project_members table
-                sql = """
-                INSERT INTO project_members(projects_id, people_id)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT project_members_duplicate
-                DO NOTHING
-                """.format(project_id, people_id)
-                sql_list.append(sql)
-
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-
-    # tags
-    if tags:
-        print(tags)
-        for tag in tags:
-            if len(tag) > 0:
-                sql = """
-                INSERT INTO tags(projects_id, tag)
-                VALUES ({0}, '{1}')
-                ON CONFLICT ON CONSTRAINT tags_duplicate
-                DO NOTHING
-                """.format(project_id, tag.replace("'", "''"))
-                sql_list.append(sql)
-            else:
-                projects_delete_delete(str(project_uuid))
-                return cors_response(
-                    request=request,
-                    status_code=400,
-                    body='Bad Request, Tag not specified or is otherwise blank',
-                    x_error='Bad Request, Tag not specified or is otherwise blank'
-                )
-
-    commands = tuple(i for i in sql_list)
-    print("[INFO] attempt to update project data")
-    run_sql_commands(commands)
-
-    return projects_uuid_get(str(project_uuid))
+    # # check for new comanage users
+    # if not comanage_check_for_new_users():
+    #     return cors_response(
+    #         request=request,
+    #         status_code=500,
+    #         body='COmanage Error - Unable to retrieve co_people data',
+    #         x_error='Unable to retrieve co_people data'
+    #     )
+    #
+    # # resolve any missing people uuids
+    # resolve_empty_people_uuid()
+    #
+    # # get identity for created_by
+    # api_person = get_api_person(request.headers.get('X-Vouch-Idp-Idtoken'))
+    # created_by = api_person.uuid
+    #
+    # # validate new owners reference as provided by project_members
+    # if project_owners:
+    #     project_owners.append(api_person.uuid)
+    # else:
+    #     project_owners = [api_person.uuid]
+    #
+    # project_owners_new, project_owners_unknown = validate_person_reference(project_owners)
+    # if project_owners_unknown:
+    #     return cors_response(
+    #         request=request,
+    #         status_code=400,
+    #         body='Project owner UUID reference Not Found: {0}'.format(', '.join(project_owners_unknown)),
+    #         x_error='Project owner UUID Unknown'
+    #     )
+    #
+    # # validate new members reference as provided by project_members
+    # if project_members:
+    #     project_members += project_owners_new.copy()
+    # else:
+    #     project_members = project_owners_new.copy()
+    #
+    # project_members_new, project_members_unknown = validate_person_reference(project_members)
+    # if project_members_unknown:
+    #     return cors_response(
+    #         request=request,
+    #         status_code=400,
+    #         body='Project member UUID reference Not Found: {0}'.format(', '.join(project_members_unknown)),
+    #         x_error='Project member UUID Unknown'
+    #     )
+    #
+    # # get created_time
+    # t_now = datetime.utcnow()
+    # created_time = t_now.strftime("%Y-%m-%d %H:%M:%S")
+    # # create new project entry
+    # project_uuid = uuid4()
+    # sql = """
+    # INSERT INTO fabric_projects(uuid, name, description, facility, created_by, created_time)
+    # VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}');
+    # """.format(str(project_uuid), name.replace("'", "''"), description.replace("'", "''"), facility.replace("'", "''"),
+    #            created_by, created_time)
+    # run_sql_commands(sql)
+    #
+    # # validate project reference as provided by uuid
+    # project_id, project_name, created_by = validate_project_reference(str(project_uuid))
+    # if project_id == -1:
+    #     return cors_response(
+    #         request=request,
+    #         status_code=400,
+    #         body='Project UUID reference Not Found: {0}'.format(str(project_uuid)),
+    #         x_error='Project UUID Unknown'
+    #     )
+    #
+    # # create comanage groups for project (uuid-po and uuid-pm)
+    # if not comanage_projects_create_post(project_uuid, name):
+    #     return cors_response(
+    #         request=request,
+    #         status_code=500,
+    #         body='Unable to create project: {0}'.format(str(project_uuid)),
+    #         x_error='Unable to create project in COmanage'
+    #     )
+    #
+    # # add projects creator to comanage uuid-pc group
+    # if not comanage_projects_add_creator_put(project_uuid, [created_by]):
+    #     return cors_response(
+    #         request=request,
+    #         status_code=500,
+    #         body='Unable to add creator: {0}'.format(str(project_uuid)),
+    #         x_error='Unable to add creator in COmanage'
+    #     )
+    #
+    # # add projects owners to comanage uuid-po group
+    # if not comanage_projects_add_owners_put(project_uuid, project_owners_new):
+    #     return cors_response(
+    #         request=request,
+    #         status_code=500,
+    #         body='Unable to add owners: {0}'.format(str(project_uuid)),
+    #         x_error='Unable to add owners in COmanage'
+    #     )
+    #
+    # # add project owners to database
+    # sql_list = []
+    # for person_uuid in project_owners_new:
+    #     if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
+    #         try:
+    #             # get people id
+    #             sql = """
+    #             SELECT id FROM fabric_people WHERE uuid = '{0}';
+    #             """.format(person_uuid)
+    #             dfq = dict_from_query(sql)
+    #             try:
+    #                 people_id = dfq[0].get('id')
+    #             except IndexError or KeyError or TypeError as err:
+    #                 print(err)
+    #                 projects_delete_delete(str(project_uuid))
+    #                 return cors_response(
+    #                     request=request,
+    #                     status_code=400,
+    #                     body='Person UUID Not Found: {0}'.format(str(person_uuid)),
+    #                     x_error='Person UUID Not Found'
+    #                 )
+    #
+    #             # add to project_owners table
+    #             sql = """
+    #             INSERT INTO project_owners(projects_id, people_id)
+    #             VALUES ({0}, '{1}')
+    #             ON CONFLICT ON CONSTRAINT project_owners_duplicate
+    #             DO NOTHING
+    #             """.format(project_id, people_id)
+    #             sql_list.append(sql)
+    #
+    #         except (Exception, psycopg2.DatabaseError) as error:
+    #             print(error)
+    #
+    # # add projects members to comanage uuid-pm group
+    # if not comanage_projects_add_members_put(project_uuid, project_members_new):
+    #     return cors_response(
+    #         request=request,
+    #         status_code=500,
+    #         body='Unable to add members: {0}'.format(str(project_uuid)),
+    #         x_error='Unable to add members in COmanage'
+    #     )
+    #
+    # # add project members to database
+    # for person_uuid in project_members_new:
+    #     if person_uuid != DEFAULT_USER_UUID or config.getboolean('mock', 'data'):
+    #         try:
+    #             # get people id
+    #             sql = """
+    #             SELECT id FROM fabric_people WHERE uuid = '{0}';
+    #             """.format(person_uuid)
+    #             dfq = dict_from_query(sql)
+    #             try:
+    #                 people_id = dfq[0].get('id')
+    #             except IndexError or KeyError or TypeError as err:
+    #                 print(err)
+    #                 projects_delete_delete(str(project_uuid))
+    #                 return cors_response(
+    #                     request=request,
+    #                     status_code=404,
+    #                     body='Person UUID Not Found: {0}'.format(str(person_uuid)),
+    #                     x_error='Person UUID Not Found'
+    #                 )
+    #
+    #             # add to project_members table
+    #             sql = """
+    #             INSERT INTO project_members(projects_id, people_id)
+    #             VALUES ({0}, '{1}')
+    #             ON CONFLICT ON CONSTRAINT project_members_duplicate
+    #             DO NOTHING
+    #             """.format(project_id, people_id)
+    #             sql_list.append(sql)
+    #
+    #         except (Exception, psycopg2.DatabaseError) as error:
+    #             print(error)
+    #
+    # # tags
+    # if tags:
+    #     print(tags)
+    #     for tag in tags:
+    #         if len(tag) > 0:
+    #             sql = """
+    #             INSERT INTO tags(projects_id, tag)
+    #             VALUES ({0}, '{1}')
+    #             ON CONFLICT ON CONSTRAINT tags_duplicate
+    #             DO NOTHING
+    #             """.format(project_id, tag.replace("'", "''"))
+    #             sql_list.append(sql)
+    #         else:
+    #             projects_delete_delete(str(project_uuid))
+    #             return cors_response(
+    #                 request=request,
+    #                 status_code=400,
+    #                 body='Bad Request, Tag not specified or is otherwise blank',
+    #                 x_error='Bad Request, Tag not specified or is otherwise blank'
+    #             )
+    #
+    # commands = tuple(i for i in sql_list)
+    # print("[INFO] attempt to update project data")
+    # run_sql_commands(commands)
+    #
+    # return projects_uuid_get(str(project_uuid))
 
 
 def projects_delete_delete(uuid):  # noqa: E501
@@ -660,6 +670,25 @@ def projects_delete_delete(uuid):  # noqa: E501
 
     :rtype: None
     """
+    fab_project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
+    if fab_project:
+        project_delete(project_uuid=uuid)
+    else:
+        return cors_response(
+            request=request,
+            status_code=404,
+            body='Project UUID reference Not Found: {0}'.format(str(uuid)),
+            x_error='Not Found'
+        )
+
+    return cors_response(
+            request=request,
+            status_code=200,
+            body='OK',
+            x_error='Project Deleted: {0}'.format(str(uuid))
+        )
+
+
     # validate project reference as provided by uuid
     project_id, project_name, created_by = validate_project_reference(uuid)
     if project_id == -1:
@@ -679,114 +708,114 @@ def projects_delete_delete(uuid):  # noqa: E501
             x_error='Authorization information is missing or invalid'
         )
 
-    print("[WARNING] Deleting project: {0} ({1})".format(str(uuid), project_name))
-
-    # remove projects_members from COU uuid-pm
-    print("[WARNING] remove project members: {0}".format(str(uuid)))
-    sql = """
-    SELECT fabric_people.uuid
-    FROM fabric_people INNER JOIN fabric_roles
-    ON fabric_people.id = fabric_roles.people_id
-    WHERE fabric_roles.role_name = '{0}';
-    """.format(str(uuid) + '-pm')
-    dfq = dict_from_query(sql)
-    project_members = []
-    if dfq:
-        for member in dfq:
-            project_members.append(member.get('uuid'))
-        if not comanage_projects_remove_members_put(uuid, project_members):
-            return cors_response(
-                request=request,
-                status_code=501,
-                body='Unable to remove members: {0}'.format(str(uuid)),
-                x_error='Unable to remove members in COmanage'
-            )
-        else:
-            # remove project members
-            command = """
-            DELETE FROM project_members
-            WHERE project_members.projects_id = {0};
-            """.format(project_id)
-            run_sql_commands(command)
-
-    # remove project_owners from COU uuid-po
-    print("[WARNING] remove project owners: {0}".format(str(uuid)))
-    sql = """
-    SELECT fabric_people.uuid
-    FROM fabric_people INNER JOIN fabric_roles
-    ON fabric_people.id = fabric_roles.people_id
-    WHERE fabric_roles.role_name = '{0}';
-    """.format(str(uuid) + '-po')
-    dfq = dict_from_query(sql)
-    project_owners = []
-    if dfq:
-        for member in dfq:
-            project_owners.append(member.get('uuid'))
-        if not comanage_projects_remove_owners_put(uuid, project_owners):
-            return cors_response(
-                request=request,
-                status_code=501,
-                body='Unable to remove owners: {0}'.format(str(uuid)),
-                x_error='Unable to remove owners in COmanage'
-            )
-        else:
-            # remove project owners
-            command = """
-            DELETE FROM project_owners
-            WHERE project_owners.projects_id = {0};
-            """.format(project_id)
-            run_sql_commands(command)
-
-    # remove project creator from COU uuid-pc
-    print("[WARNING] remove project creator: {0}".format(str(uuid)))
-    sql = """
-    SELECT fabric_people.uuid
-    FROM fabric_people INNER JOIN fabric_roles
-    ON fabric_people.id = fabric_roles.people_id
-    WHERE fabric_roles.role_name = '{0}';
-    """.format(str(uuid) + '-pc')
-    dfq = dict_from_query(sql)
-    project_creators = []
-    if dfq:
-        for member in dfq:
-            project_creators.append(member.get('uuid'))
-        print(project_creators)
-        if not comanage_projects_remove_creators(uuid, project_creators):
-            return cors_response(
-                request=request,
-                status_code=501,
-                body='Unable to remove creators: {0}'.format(str(uuid)),
-                x_error='Unable to remove project creator in COmanage'
-            )
-
-    # remove project tags
-    print("[WARNING] remove project tags: {0}".format(str(uuid)))
-    command = """
-    DELETE FROM tags
-    WHERE tags.projects_id = {0};
-    """.format(project_id)
-    run_sql_commands(command)
-
-    # remove project COU uuid-pc, uuid-po, uuid-pm
-    print("[WARNING] remove project COUs: {0}".format(str(uuid)))
-    if not comanage_projects_delete_delete(uuid):
-        return cors_response(
-            request=request,
-            status_code=501,
-            body='Unable to delete project COUs: {0}'.format(str(uuid)),
-            x_error='Unable to delete project in COmanage'
-        )
-    else:
-        # remove project
-        command = """
-        DELETE FROM fabric_projects
-        WHERE fabric_projects.uuid = '{0}';
-        """.format(uuid)
-        run_sql_commands(command)
-
-    print("[INFO] project successfully removed: {0}".format(str(uuid)))
-
-    return {}
+    # print("[WARNING] Deleting project: {0} ({1})".format(str(uuid), project_name))
+    #
+    # # remove projects_members from COU uuid-pm
+    # print("[WARNING] remove project members: {0}".format(str(uuid)))
+    # sql = """
+    # SELECT fabric_people.uuid
+    # FROM fabric_people INNER JOIN fabric_roles
+    # ON fabric_people.id = fabric_roles.people_id
+    # WHERE fabric_roles.role_name = '{0}';
+    # """.format(str(uuid) + '-pm')
+    # dfq = dict_from_query(sql)
+    # project_members = []
+    # if dfq:
+    #     for member in dfq:
+    #         project_members.append(member.get('uuid'))
+    #     if not comanage_projects_remove_members_put(uuid, project_members):
+    #         return cors_response(
+    #             request=request,
+    #             status_code=501,
+    #             body='Unable to remove members: {0}'.format(str(uuid)),
+    #             x_error='Unable to remove members in COmanage'
+    #         )
+    #     else:
+    #         # remove project members
+    #         command = """
+    #         DELETE FROM project_members
+    #         WHERE project_members.projects_id = {0};
+    #         """.format(project_id)
+    #         run_sql_commands(command)
+    #
+    # # remove project_owners from COU uuid-po
+    # print("[WARNING] remove project owners: {0}".format(str(uuid)))
+    # sql = """
+    # SELECT fabric_people.uuid
+    # FROM fabric_people INNER JOIN fabric_roles
+    # ON fabric_people.id = fabric_roles.people_id
+    # WHERE fabric_roles.role_name = '{0}';
+    # """.format(str(uuid) + '-po')
+    # dfq = dict_from_query(sql)
+    # project_owners = []
+    # if dfq:
+    #     for member in dfq:
+    #         project_owners.append(member.get('uuid'))
+    #     if not comanage_projects_remove_owners_put(uuid, project_owners):
+    #         return cors_response(
+    #             request=request,
+    #             status_code=501,
+    #             body='Unable to remove owners: {0}'.format(str(uuid)),
+    #             x_error='Unable to remove owners in COmanage'
+    #         )
+    #     else:
+    #         # remove project owners
+    #         command = """
+    #         DELETE FROM project_owners
+    #         WHERE project_owners.projects_id = {0};
+    #         """.format(project_id)
+    #         run_sql_commands(command)
+    #
+    # # remove project creator from COU uuid-pc
+    # print("[WARNING] remove project creator: {0}".format(str(uuid)))
+    # sql = """
+    # SELECT fabric_people.uuid
+    # FROM fabric_people INNER JOIN fabric_roles
+    # ON fabric_people.id = fabric_roles.people_id
+    # WHERE fabric_roles.role_name = '{0}';
+    # """.format(str(uuid) + '-pc')
+    # dfq = dict_from_query(sql)
+    # project_creators = []
+    # if dfq:
+    #     for member in dfq:
+    #         project_creators.append(member.get('uuid'))
+    #     print(project_creators)
+    #     if not comanage_projects_remove_creators(uuid, project_creators):
+    #         return cors_response(
+    #             request=request,
+    #             status_code=501,
+    #             body='Unable to remove creators: {0}'.format(str(uuid)),
+    #             x_error='Unable to remove project creator in COmanage'
+    #         )
+    #
+    # # remove project tags
+    # print("[WARNING] remove project tags: {0}".format(str(uuid)))
+    # command = """
+    # DELETE FROM tags
+    # WHERE tags.projects_id = {0};
+    # """.format(project_id)
+    # run_sql_commands(command)
+    #
+    # # remove project COU uuid-pc, uuid-po, uuid-pm
+    # print("[WARNING] remove project COUs: {0}".format(str(uuid)))
+    # if not comanage_projects_delete_delete(uuid):
+    #     return cors_response(
+    #         request=request,
+    #         status_code=501,
+    #         body='Unable to delete project COUs: {0}'.format(str(uuid)),
+    #         x_error='Unable to delete project in COmanage'
+    #     )
+    # else:
+    #     # remove project
+    #     command = """
+    #     DELETE FROM fabric_projects
+    #     WHERE fabric_projects.uuid = '{0}';
+    #     """.format(uuid)
+    #     run_sql_commands(command)
+    #
+    # print("[INFO] project successfully removed: {0}".format(str(uuid)))
+    #
+    # return {}
 
 
 def projects_get(project_name=None):  # noqa: E501

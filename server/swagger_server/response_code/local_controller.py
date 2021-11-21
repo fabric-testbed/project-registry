@@ -1,4 +1,6 @@
 import os
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from comanage_api import ComanageApi
 
@@ -6,8 +8,8 @@ from swagger_server.db import db
 from swagger_server.db_models import FabricPeople, FabricProjects, FabricRoles, FabricCous, FabricTags, \
     FabricProjectOwners, FabricProjectMembers
 from swagger_server.models.people_short import PeopleShort
-from swagger_server.models.project_short import ProjectShort
 from swagger_server.models.project_long import ProjectLong
+from swagger_server.models.project_short import ProjectShort
 
 api = ComanageApi(
     co_api_url=os.getenv('COMANAGE_API_URL'),
@@ -99,8 +101,6 @@ def add_members_by_project_uuid(project_uuid: str, project_members: [str]) -> No
             else:
                 print("[ERROR] CoPersonRole Not Created for member: {0}".format(member))
 
-    db.session.close()
-
 
 def remove_members_by_project_uuid(project_uuid: str, project_members: [str]) -> None:
     fab_project = FabricProjects.query.filter_by(uuid=project_uuid).first()
@@ -141,8 +141,6 @@ def remove_members_by_project_uuid(project_uuid: str, project_members: [str]) ->
         else:
             print("[WARNING] Member not found for Project: {0}, member: {1}".format(project_uuid, member))
 
-    db.session.close()
-
 
 def add_owners_by_project_uuid(project_uuid: str, project_owners: [str]) -> None:
     fab_project = FabricProjects.query.filter_by(uuid=project_uuid).first()
@@ -181,8 +179,6 @@ def add_owners_by_project_uuid(project_uuid: str, project_owners: [str]) -> None
                 db.session.commit()
             else:
                 print("[ERROR] CoPersonRole Not Created for owner: {0}".format(owner))
-
-    db.session.close()
 
 
 def remove_owners_by_project_uuid(project_uuid: str, project_owners: [str]) -> None:
@@ -223,7 +219,173 @@ def remove_owners_by_project_uuid(project_uuid: str, project_owners: [str]) -> N
         else:
             print("[WARNING] Owner not found for Project: {0}, owner: {1}".format(project_uuid, owner))
 
-    db.session.close()
+
+def add_creator_by_project_uuid(project_uuid: str, project_creator: str) -> None:
+    creator_cou = FabricCous.query.filter_by(name=project_uuid + '-pc').first()
+    if project_creator:
+        person = FabricPeople.query.filter_by(uuid=project_creator).one_or_none()
+        if person:
+            people_id = person.__asdict__().get('id')
+            co_person_id = person.__asdict__().get('co_person_id')
+            fab_creator = FabricRoles.query.filter(
+                FabricRoles.people_id == people_id,
+                FabricRoles.cou_id == creator_cou.id,
+                FabricRoles.role_name == project_uuid + '-pc'
+            ).one_or_none()
+            if fab_creator:
+                print("[WARNING] Duplicate creator for Project: {0}, creator: {1}".format(project_uuid, project_creator))
+            else:
+                print("[INFO] Create creator for Project: {0}, creator: {1}".format(project_uuid, project_creator))
+                # create new role in COmanage
+                co_response = api.coperson_roles_add(
+                    coperson_id=co_person_id, cou_id=creator_cou.cou_id,
+                    status='Active', affiliation='member')
+                if co_response:
+                    role_id = co_response.get('Id')
+                    # update fabric_roles table
+                    update_fabric_roles_by_role_id(people_id=people_id, role_id=role_id)
+                else:
+                    print("[ERROR] CoPersonRole Not Created for creator: {0}".format(project_creator))
+        else:
+            print("[ERROR] Person Not Found creator for Project: {0}, creator: {1}".format(project_uuid, project_creator))
+    else:
+        print("[ERROR] Person Not Found creator for Project: {0}, creator: {1}".format(project_uuid, project_creator))
+
+
+def remove_creator_by_project_uuid(project_uuid: str, project_creator: str) -> None:
+    creator_cou = FabricCous.query.filter_by(name=project_uuid + '-pc').first()
+    if project_creator:
+        person = FabricPeople.query.filter_by(uuid=project_creator).one_or_none()
+        if person:
+            people_id = person.__asdict__().get('id')
+            fab_role = FabricRoles.query.filter(
+                FabricRoles.people_id == people_id,
+                FabricRoles.cou_id == creator_cou.id,
+                FabricRoles.role_name == project_uuid + '-pc'
+            ).one_or_none()
+            if fab_role:
+                # removed new role in COmanage
+                role_id = fab_role.__asdict__().get('role_id')
+                co_response = api.coperson_roles_delete(coperson_role_id=role_id)
+                if co_response:
+                    print("[INFO] CoPersonRole removed for creator: {0}".format(project_creator))
+                    # remove creator from fabric_roles table
+                    db.session.delete(fab_role)
+                    db.session.commit()
+                else:
+                    print("[ERROR] CoPersonRole Not removed for creator: {0}".format(project_creator))
+            else:
+                print("[ERROR] Person Not Found creator for Project: {0}, creator: {1}".format(project_uuid, project_creator))
+        else:
+            print(
+                "[ERROR] Person Not Found creator for Project: {0}, creator: {1}".format(project_uuid, project_creator))
+    else:
+        print("[ERROR] Person Not Found creator for Project: {0}, creator: {1}".format(project_uuid, project_creator))
+
+
+def project_create(name: str, description: str, facility: str, tags: [str], project_creator: str,
+                   project_owners: [str], project_members: [str]) -> str:
+    # generate uuid
+    project_uuid = uuid4()
+    # create -pc, -po, -pm COUs in COmanage and add to comanage_cous table
+    cou_pc = api.cous_add(name=str(project_uuid) + '-pc', description=name, parent_id=os.getenv('COU_ID_PROJECTS'))
+    if cou_pc:
+        update_comanage_cous_by_cou_id(cou_pc.get('Id'))
+    cou_po = api.cous_add(name=str(project_uuid) + '-po', description=name, parent_id=os.getenv('COU_ID_PROJECTS'))
+    if cou_po:
+        update_comanage_cous_by_cou_id(cou_po.get('Id'))
+    cou_pm = api.cous_add(name=str(project_uuid) + '-pm', description=name, parent_id=os.getenv('COU_ID_PROJECTS'))
+    if cou_pm:
+        update_comanage_cous_by_cou_id(cou_pm.get('Id'))
+    # create base project - uuid, name, description, facility, created_by, created_time
+    project = FabricProjects()
+    project.uuid = project_uuid
+    project.name = name
+    project.description = description
+    project.facility = facility
+    project.created_by = project_creator
+    project.created_time = datetime.now(tz=timezone.utc)
+    db.session.add(project)
+    db.session.commit()
+    # add project_creator to CoPersonRoles
+    add_creator_by_project_uuid(project_uuid=str(project_uuid), project_creator=project_creator)
+    # add project_owners
+    if project_owners:
+        add_owners_by_project_uuid(project_uuid=str(project_uuid), project_owners=project_owners)
+    # add project_members
+    if project_members:
+        add_members_by_project_uuid(project_uuid=str(project_uuid), project_members=project_members)
+    # add tags
+    if tags:
+        add_tags_by_project_uuid(project_uuid=str(project_uuid), tags=tags)
+    # return project UUID
+
+    return str(project_uuid)
+
+
+def project_delete(project_uuid: str) -> bool:
+    project = FabricProjects.query.filter_by(uuid=project_uuid).first()
+    if project:
+        print("[INFO] Delete Project: {0}".format(project_uuid))
+        # remove tags from database
+        query = FabricTags.query.filter_by(projects_id=project.id).all()
+        tags = [q.tag for q in query]
+        remove_tags_by_project_uuid(project_uuid=project_uuid, tags=tags)
+        # for each project_member delete COmanage role and remove entry from fabric_roles and project_members
+        query = FabricProjectMembers.query.filter_by(projects_id=project.id).all()
+        pm_ids = [q.people_id for q in query]
+        query = FabricPeople.query.filter(FabricPeople.id.in_(pm_ids)).all()
+        project_members = [q.uuid for q in query]
+        remove_members_by_project_uuid(project_uuid=project_uuid, project_members=project_members)
+        # remove -pm COU
+        pm_cou = FabricCous.query.filter_by(name=project_uuid + '-pm').one_or_none()
+        if pm_cou:
+            cou_id = pm_cou.__asdict__().get('cou_id')
+            remove_pm_cou = api.cous_delete(cou_id=cou_id)
+            if remove_pm_cou:
+                print("[INFO] Remove -pm CO entry for CouId: {0}".format(cou_id))
+                db.session.delete(pm_cou)
+                db.session.commit()
+            else:
+                print("[WARNING] Not Found -pm CO entry for CouId: {0}".format(cou_id))
+        # for each project_owner delete COmanage role and remove entry from fabric_roles and project_owners
+        query = FabricProjectOwners.query.filter_by(projects_id=project.id).all()
+        po_ids = [q.people_id for q in query]
+        query = FabricPeople.query.filter(FabricPeople.id.in_(po_ids)).all()
+        project_owners = [q.uuid for q in query]
+        remove_owners_by_project_uuid(project_uuid=project_uuid, project_owners=project_owners)
+        # remove -po COU
+        po_cou = FabricCous.query.filter_by(name=project_uuid + '-po').one_or_none()
+        if po_cou:
+            cou_id = po_cou.__asdict__().get('cou_id')
+            remove_pm_cou = api.cous_delete(cou_id=cou_id)
+            if remove_pm_cou:
+                print("[INFO] Remove -po CO entry for CouId: {0}".format(cou_id))
+                db.session.delete(po_cou)
+                db.session.commit()
+            else:
+                print("[WARNING] Not Found -po CO entry for CouId: {0}".format(cou_id))
+        # for each project creator delete COmanage role and remove from fabric_roles
+        remove_creator_by_project_uuid(project_uuid=project_uuid, project_creator=project.created_by)
+        # remove -pc COU
+        pc_cou = FabricCous.query.filter_by(name=project_uuid + '-pc').one_or_none()
+        if pc_cou:
+            cou_id = pc_cou.__asdict__().get('cou_id')
+            remove_pm_cou = api.cous_delete(cou_id=cou_id)
+            if remove_pm_cou:
+                print("[INFO] Remove -pc CO entry for CouId: {0}".format(cou_id))
+                db.session.delete(pc_cou)
+                db.session.commit()
+            else:
+                print("[WARNING] Not Found -pc CO entry for CouId: {0}".format(cou_id))
+        # remove project from fabric_projects
+        db.session.delete(project)
+        db.session.commit()
+    else:
+        print("[WARNING] UUID for Project: {0} Not Found".format(project_uuid))
+        return False
+
+    return True
 
 
 def get_project_tags(project_id: int) -> [str]:
@@ -255,7 +417,6 @@ def add_tags_by_project_uuid(project_uuid: str, tags: [str]) -> bool:
             db.session.add(fab_tag)
             db.session.commit()
 
-    db.session.close()
     return True
 
 
@@ -275,7 +436,6 @@ def remove_tags_by_project_uuid(project_uuid: str, tags: [str]) -> bool:
         else:
             print("[WARNING] Not Found tag for Project: {0}, tag: {1}".format(project_uuid, tag))
 
-    db.session.close()
     return True
 
 
@@ -319,7 +479,7 @@ def update_comanage_cous_by_cou_id(cou_id: int) -> None:
             found_cou = True
         else:
             print("[INFO] Create entry in 'comanage_cous' table for CouId: {0}".format(co_cou_id))
-            found_cou = FabricCous
+            found_cou = False
             fab_cou = FabricCous()
             fab_cou.cou_id = co_cou_id
             fab_cou.created_date = co_cou.get('Created')
@@ -329,6 +489,8 @@ def update_comanage_cous_by_cou_id(cou_id: int) -> None:
         fab_cou.version = co_cou.get('Version')
         fab_cou.parent_id = co_cou.get('ParentId', '-1')
         fab_cou.revision = co_cou.get('Revision')
+        fab_cou.deleted = co_cou.get('Deleted')
+        fab_cou.actor_identifier = co_cou.get('ActorIdentifier')
         fab_cou.lft = co_cou.get('Lft')
         fab_cou.rght = co_cou.get('Rght')
         fab_cou.modified_date = co_cou.get('Modified')
@@ -348,7 +510,7 @@ def update_fabric_roles_by_role_id(people_id: int, role_id: int) -> None:
             if people_id and co_cou_id and status:
                 role = FabricRoles.query.filter_by(role_id=co_role_id).one_or_none()
                 if not role:
-                    print("Create entry in 'roles' table for CoPersonRolesId: {0}".format(co_role_id))
+                    print("[INFO] Create entry in 'roles' table for CoPersonRolesId: {0}".format(co_role_id))
                     role = FabricRoles()
                     role_cou = FabricCous.query.filter_by(cou_id=co_cou_id).one_or_none()
                     role.role_id = co_role_id
@@ -359,11 +521,11 @@ def update_fabric_roles_by_role_id(people_id: int, role_id: int) -> None:
                     db.session.add(role)
                     db.session.commit()
                 else:
-                    print("Update entry in 'roles' table for CoPersonRolesId: {0}".format(co_role_id))
+                    print("[INFO] Update entry in 'roles' table for CoPersonRolesId: {0}".format(co_role_id))
                     role.status = status
                     db.session.commit()
             else:
-                print("CoPersonRolesId: {0} is missing 'CouId'".format(co_role_id))
+                print("[INFO] CoPersonRolesId: {0} is missing 'CouId'".format(co_role_id))
 
 
 def update_project_by_project_uuid(project_uuid: str, name: str, description: str, facility: str) -> bool:
@@ -387,7 +549,6 @@ def update_project_by_project_uuid(project_uuid: str, name: str, description: st
         fab_project.facility = facility
 
     db.session.commit()
-    db.session.close()
 
     return True
 
@@ -423,7 +584,6 @@ def sync_roles_per_person(person_id: int) -> bool:
                 db.session.add(co_person_role)
             db.session.commit()
 
-    db.session.close()
     return True
 
 
@@ -473,5 +633,6 @@ def get_projects_per_person(person_id: int) -> list:
                 cb.uuid = cb_uuid
                 ps.created_by = cb
                 projects.append(ps)
+        projects = sorted(projects, key=lambda p: p.name, reverse=False)
 
     return projects

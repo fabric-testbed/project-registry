@@ -120,9 +120,9 @@ def load_fabric_people():
             fab_person = FabricPeople()
             fab_person.co_id = co_person.get('CoId')
             fab_person.co_person_id = co_person_id
-            fab_person.name = primary_name_from_coperson_id(co_person_id)
-            fab_person.email = official_email_from_coperson_id(co_person_id)
             fab_person.oidc_claim_sub = oidc_claim_sub_from_coperson_id(co_person_id)
+        fab_person.email = official_email_from_coperson_id(co_person_id)
+        fab_person.name = primary_name_from_coperson_id(co_person_id)
         fab_person.co_status = co_person.get('Status')
         if not found_person:
             logger.info("--> name: {0} | email: {1} | oidc_claim_sub {2}".format(
