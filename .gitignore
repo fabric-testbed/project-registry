@@ -15,6 +15,7 @@ server/swagger_server/config/config.ini
 migrations
 
 # database backup files
+data
 backup.sql
 
 ### Python template

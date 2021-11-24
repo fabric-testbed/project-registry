@@ -30,7 +30,7 @@ load_dotenv(verbose=True, dotenv_path=env_path)
 #
 # # import connexion
 # from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+# from sqlalchemy.orm import sessionmaker
 #
 # from . import encoder
 #
@@ -43,7 +43,7 @@ from sqlalchemy.orm import sessionmaker
 #
 # engine = create_engine(POSTGRES_ENGINE)
 # Session = sessionmaker(bind=engine)
-Session = sessionmaker()
+# Session = sessionmaker()
 #
 # app = connexion.App(__name__, specification_dir='./swagger/')
 # app.app.json_encoder = encoder.JSONEncoder

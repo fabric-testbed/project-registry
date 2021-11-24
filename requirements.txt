@@ -7,8 +7,8 @@ python-dateutil # alembic[tz]
 python-dotenv
 pytz
 swagger-ui-bundle # connexion[swagger-ui]
+pyjwt
 #
-PyJWT
-configparser
-cryptography
-uwsgi
+# configparser
+# cryptography
+# uwsgi
