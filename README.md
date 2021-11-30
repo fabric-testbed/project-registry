@@ -63,342 +63,298 @@ There are a minimal number of prerequisites to run the code herein. Development 
 
 Configuration settings are managed in a few key places
 
-**server/swagger_server/config/config.ini** (api server settings)
+**.env** (Flask and Docker settings)
 
-- Create the `server/swagger_server/config/config.ini` file by copying the `server/swagger_server/config/config.ini_template` template file
+Create the `.env` file by copying the `env_template` template file
+
 - Adjust the settings to suit your deployment environment
-    - `mock.data` - use True unless you have COmanage LDAP access (default `True`)
-    - `mock.comanage_api` - use True unless you have COmanage LDAP access (default `True`)
-    - `postgres.host` - use `database` when deploying api-server in docker (default `database`)
-    - `ldap.host` - Value provided by CILogon staff (default to empty)
-    - `ldap.user` - Value provided by CILogon staff (default to empty)
-    - `ldap.password` - Value provided by CILogon staff (default to empty)
-    - `ldap.search_base` - Value provided by CILogon staff (default to empty)
-- Provided example template:
 
-    ```ini
-    ; comanage-api - COmanage API username and key
-    [comanage-api]
-    api_key = api_key
-    api_username = api_username
-    
-    ; default-user - Default user settings for when user credentials are not provided
-    [default-user]
-    email = anonymous@fabric-testbed.net
-    eppn = anonymous@fabric-testbed.net
-    name = anonymous user
-    oidc_claim_sub = http://cilogon.org/serverA/users/000000
-    ; roles must be space delimited if providing more than one
-    roles = CO:COU:fabric-active-users:members:active
-    uuid = 00000000-0000-0000-0000-000000000000
-    
-    ; fabric-cou - COmanaage COUs for authorization checks (non-project based)
-    [fabric-cou]
-    fabric_active_users = CO:COU:fabric-active-users:members:active
-    facility_operators = CO:COU:facility-operators:members:active
-    project_leads = CO:COU:project-leads:members:active
-    
-    ; ldap - COmanage LDAP settings provided by CILogon staff
-    [ldap]
-    host = host
-    password = password
-    search_base = search_base
-    user = user
-    
-    ; mock - Mock data flags
-    [mock]
-    ; True = use mock api calls to COmanage (does not create real groups)
-    comanage_api = True
-    ; True = use mock data instead of data found in COmanage
-    data = True
-    ; True = use mock api calls to User Information Service (generates UUID values for users)
-    uis_api = True
-    
-    ; postgres - PostgreSQL database settings
-    [postgres]
-    database = postgres
-    ; use for docker based server
-    host = database
-    ; use for locally running server
-    ;host = 127.0.0.1
-    password = registry
-    port = 5432
-    user = postgres
-    
-    ; uwsgi - uWSGI settings
-    [uwsgi]
-    ; documentation: http://uwsgi-docs.readthedocs.io/en/latest/Options.html
-    ; chdir to specified directory before apps loading
-    chdir = ./
-    ; chmod-socket ... with appropriate permissions - may be needed **socket**
-    ;chmod-socket        = 666
-    ; exit instead of brutal reload on SIGTERM (no more needed)
-    die-on-term = true
-    ; add an http router/server on the specified address **port**
-    ;http                = :8000
-    ; automatically transform output to chunked encoding during HTTP 1.1 keepalive
-    ;http-auto-chunked = true
-    ; HTTP 1.1 keepalive support (non-pipelined) requests
-    ;http-keepalive = true
-    ; load apps in each worker instead of the master
-    ;lazy-apps = true
-    ; prefix logs with date or a strftime string
-    ;log-date = true
-    ; enable master process
-    master = true
-    ; reload workers after the specified amount of managed requests
-    max-requests = 5000
-    ; load Flask's WSGI file/module
-    module = wsgi:app
-    ; enable post buffering
-    ;post-buffering = true
-    ; spawn the specified number of workers/processes
-    processes = 2
-    ; force the specified protocol for default sockets
-    protocol = http
-    ; bind to the specified UNIX/TCP socket using default protocol
-    socket = :5000
-    ; map mountpoint to static directory (or file) **port**
-    ;static-map          = /static/=static/
-    ;static-map          = /media/=media/
-    ; run each worker in prethreaded mode with the specified number of threads
-    threads = 2
-    ; bind to the specified UNIX/TCP socket using uwsgi protocol (full path) **socket**
-    ;uwsgi-socket        = ./base.sock
-    ; try to remove all of the generated file/sockets
-    vacuum = true
-    ; set PYTHONHOME/virtualenv (full path)
-    ;virtualenv          = ./venv ;;; now set in run_uwsgi script
-    ; strategy for allocating/deallocating the WSGI env
-    ;wsgi-env-behavior = holy
-    ```
+Provided example template:
+
+```bash
+# Configuration
+
+### API Configuration
+export API_VERSION=1.0.0
+export API_GITSHA1=767ee40c8de7bc8ad5fe920b1be6f6bdc4f7c7d7
+export API_DEBUG=true
+export API_SWAGGER_HOST=127.0.0.1:6000
+
+### Facility Configuration
+export FABRIC_FACILITY=FABRIC
+
+### UIS Configuration
+export UIS_AUTH_COOKIE_NAME=uis-auth-cookie-name
+export UIS_GET_USER_UUID_ENDPOINT=uis-get-user-uuid-endpoint
+
+### Non-Project Roles
+export ROLE_ACTIVE_USERS=fabric-active-users
+export ROLE_FACILITY_OPERATORS=facility-operators
+export ROLE_PROJECT_LEADS=project-leads
+export ROLE_APPROVAL_COMMITTEE=approval-committee
+
+### COmanage API User
+export COMANAGE_API_USER=co_123.api-user-name
+export COMANAGE_API_PASS=xxxx-xxxx-xxxx-xxxx
+export COMANAGE_API_CO_NAME=RegistryName
+export COMANAGE_API_CO_ID=123
+export COMANAGE_API_URL=https://FQDN_OF_REGISTRY
+export COMANAGE_API_SSH_KEY_AUTHENTICATOR_ID=123
+
+### COmanage COU IDs
+export COU_ID_FACILITY_OPERATORS=100
+export COU_ID_PROJECT_LEADS=101
+export COU_ID_PROJECTS=102
+export COU_ID_ACTIVE_USERS=103
+export COU_ID_APPROVAL_COMMITTEE=104
+export COU_ID_JUPYTERHUB=105
+
+### Postgres
+#export POSTGRES_SERVER=127.0.0.1
+export POSTGRES_SERVER=database
+export POSTGRES_PORT=5432
+export POSTGRES_PASSWORD=registry
+export POSTGRES_USER=postgres
+export POSTGRES_DB=postgres
+export PGDATA=/var/lib/postgresql/data/pg_data
+export LOCAL_DATA=./data
+
+### Python Path
+export PYTHONPATH=$(pwd)/server:$(pwd)/venv:$(pwd)/.venv
+
+### Flask
+export FLASK_APP=swagger_server.__main__:app
+```
 
 **vouch/config** (vouch-proxy settings)
 
-- Create the `vouch/config` file by copying the `vouch/config_template` template file
+Create the `vouch/config` file by copying the `vouch/config_template` template file
 
-- Adjust the settings to suit your deployment environment
-    - `vouch.publicAccess:` - set to false to enforce authentication (default `true`)
-    - `cookie.domain:` - your domain (default `127.0.0.1`)
-    - `cookie.name:` - your cookie name (default `fabric-service`)
-    - `oauth.client_id:` - CILogon Client ID (default `CILOGON_CLIENT_ID`)
-    - `oauth.client_secret:` - CILogon Client Secret (default `CILOGON_CLIENT_SECRET`)
-    - `oauth.callback_url:` - OIDC callback URL (default `http://127.0.0.1:9090/auth`)
-- Provided example template:
+Adjust the settings to suit your deployment environment
 
-    ```yaml
-    # vouch config
-    # bare minimum to get vouch running with OpenID Connect (such as okta)
+- `vouch.publicAccess:` - set to false to enforce authentication (default `true`)
+- `cookie.domain:` - your domain (default `127.0.0.1`)
+- `cookie.name:` - your cookie name (default `fabric-service`)
+- `oauth.client_id:` - CILogon Client ID (default `CILOGON_CLIENT_ID`)
+- `oauth.client_secret:` - CILogon Client Secret (default `CILOGON_CLIENT_SECRET`)
+- `oauth.callback_url:` - OIDC callback URL (default `http://127.0.0.1:9090/auth`)
+
+Provided example template:
+
+```yaml
+# vouch config
+# bare minimum to get vouch running with OpenID Connect (such as okta)
     
-    vouch:
-        logLevel: debug
-        # domains:
-        # valid domains that the jwt cookies can be set into
-        # the callback_urls will be to these domains
-        # domains:
-        # - yourdomain.com
-        # - yourotherdomain.com
+vouch:
+    logLevel: debug
+    # domains:
+    # valid domains that the jwt cookies can be set into
+    # the callback_urls will be to these domains
+    # domains:
+    # - yourdomain.com
+    # - yourotherdomain.com
     
-        # - OR -
-        # instead of setting specific domains you may prefer to allow all users...
-        # set allowAllUsers: true to use Vouch Proxy to just accept anyone who can authenticate at the configured provider
-        # and set vouch.cookie.domain to the domain you wish to protect
-        allowAllUsers: true
+    # - OR -
+    # instead of setting specific domains you may prefer to allow all users...
+    # set allowAllUsers: true to use Vouch Proxy to just accept anyone who can authenticate at the configured provider
+    # and set vouch.cookie.domain to the domain you wish to protect
+    allowAllUsers: true
     
-        # Setting publicAccess: true will accept all requests, even without a valid jwt/cookie.  - VOUCH_PUBLICACCESS
-        # If the user is logged in, the cookie will be validated and the user header will be set.
-        # You will need to direct people to the Vouch Proxy login page from your application.
-        publicAccess: true
+    # Setting publicAccess: true will accept all requests, even without a valid jwt/cookie.  - VOUCH_PUBLICACCESS
+    # If the user is logged in, the cookie will be validated and the user header will be set.
+    # You will need to direct people to the Vouch Proxy login page from your application.
+    publicAccess: true
     
-        jwt:
-            # secret - VOUCH_JWT_SECRET
-            # a random string used to cryptographically sign the jwt
-            # Vouch Proxy complains if the string is less than 44 characters (256 bits as 32 base64 bytes)
-            # if the secret is not set here then Vouch Proxy will..
-            # - look for the secret in `./config/secret`
-            # - if `./config/secret` doesn't exist then randomly generate a secret and store it there
-            # in order to run multiple instances of vouch on multiple servers (perhaps purely for validating the jwt),
-            # you'll want them all to have the same secret
-            secret: kmDDgMLGThapDV1QnhWPJd0oARzjLa5Zy3bQ8WfOIYk=
+    jwt:
+        # secret - VOUCH_JWT_SECRET
+        # a random string used to cryptographically sign the jwt
+        # Vouch Proxy complains if the string is less than 44 characters (256 bits as 32 base64 bytes)
+        # if the secret is not set here then Vouch Proxy will..
+        # - look for the secret in `./config/secret`
+        # - if `./config/secret` doesn't exist then randomly generate a secret and store it there
+        # in order to run multiple instances of vouch on multiple servers (perhaps purely for validating the jwt),
+        # you'll want them all to have the same secret
+        secret: kmDDgMLGThapDV1QnhWPJd0oARzjLa5Zy3bQ8WfOIYk=
     
-        cookie:
-            # allow the jwt/cookie to be set into http://yourdomain.com (defaults to true, requiring https://yourdomain.com)
-            secure: false
-            # vouch.cookie.domain must be set when enabling allowAllUsers
-            domain: 127.0.0.1
-            name: fabric-service
+    cookie:
+        # allow the jwt/cookie to be set into http://yourdomain.com (defaults to true, requiring https://yourdomain.com)
+        secure: false
+        # vouch.cookie.domain must be set when enabling allowAllUsers
+        domain: 127.0.0.1
+        name: fabric-service
     
-        headers:
-            jwt: X-Vouch-Token                # VOUCH_HEADERS_JWT
-            querystring: access_token         # VOUCH_HEADERS_QUERYSTRING
-            redirect: X-Vouch-Requested-URI   # VOUCH_HEADERS_REDIRECT
-            claims:
-                - aud
-                - email
-                - family_name
-                - given_name
-                - iss
-                - name
-                - oidc
-                - sub
-                - token_id
-            idtoken: X-Vouch-IdP-IdToken
-            accesstoken: X-Vouch-IdP-AccessToken
-            # refresh token added to OIDC RP Client response by request to CILogon
-            refreshtoken: X-Vouch-IdP-RefreshToken
-    
-    oauth:
-        # Generic OpenID Connect
-        # including okta
-        provider: oidc
-        client_id: CILOGON_CLIENT_ID
-        client_secret: CILOGON_CLIENT_SECRET
-        auth_url: https://cilogon.org/authorize
-        token_url: https://cilogon.org/oauth2/token
-        user_info_url: https://cilogon.org/oauth2/userinfo
-        scopes:
-            - openid
+    headers:
+        jwt: X-Vouch-Token                # VOUCH_HEADERS_JWT
+        querystring: access_token         # VOUCH_HEADERS_QUERYSTRING
+        redirect: X-Vouch-Requested-URI   # VOUCH_HEADERS_REDIRECT
+        claims:
+            - aud
             - email
-            - profile
-        callback_url: http://127.0.0.1:9090/auth
-    ```
+            - family_name
+            - given_name
+            - iss
+            - name
+            - oidc
+            - sub
+            - token_id
+        idtoken: X-Vouch-IdP-IdToken
+        accesstoken: X-Vouch-IdP-AccessToken
+        # refresh token added to OIDC RP Client response by request to CILogon
+        refreshtoken: X-Vouch-IdP-RefreshToken
+    
+oauth:
+    # Generic OpenID Connect
+    # including okta
+    provider: oidc
+    client_id: CILOGON_CLIENT_ID
+    client_secret: CILOGON_CLIENT_SECRET
+    auth_url: https://cilogon.org/authorize
+    token_url: https://cilogon.org/oauth2/token
+    user_info_url: https://cilogon.org/oauth2/userinfo
+    scopes:
+        - openid
+        - email
+        - profile
+    callback_url: http://127.0.0.1:9090/auth
+```
 
 **nginx/default.conf** (nginx configuration)
 
-- update existing configuration file
-    - line: `return 301 https://$host:8443$request_uri;` set https PORT (default 8443)
-    - line: `ssl_certificate /etc/ssl/fullchain.pem;` set container path to SSL certificate (default self-signed fullchain.pem)
-    - line: `ssl_certificate_key /etc/ssl/privkey.pem;` set container path to SSL private key (default self-signed privkey.pem)
-    - **NOTE** container's `/etc/ssl` mount path from host is set in **docker-compose.yml** file
-    - line: `proxy_pass http://api-server:5000/;` set `proxy_pass` based on where api-server is running (default to docker definition `api-server:5000`)
+Update existing configuration file
 
-- provided `default.conf` file:
+- line: `return 301 https://$host:8443$request_uri;` set https PORT (default 8443)
+- line: `ssl_certificate /etc/ssl/fullchain.pem;` set container path to SSL certificate (default self-signed fullchain.pem)
+- line: `ssl_certificate_key /etc/ssl/privkey.pem;` set container path to SSL private key (default self-signed privkey.pem)
+- **NOTE** container's `/etc/ssl` mount path from host is set in **docker-compose.yml** file
+- line: `proxy_pass http://api-server:5000/;` set `proxy_pass` based on where api-server is running (default to docker definition `api-server:5000`)
 
-    ```conf
-    server {
-        listen 80;
-        ### modify PORT prior to deployment (default 8443)
-        return 301 https://$host:8443$request_uri;
+Provided `default.conf` file:
+
+```conf
+server {
+    listen 80;
+    ### modify PORT prior to deployment (default 8443)
+    return 301 https://$host:8443$request_uri;
+}
+    
+server {
+    listen 443 ssl http2;
+    server_name $host;
+    
+    ssl_certificate /etc/ssl/fullchain.pem;
+    ssl_certificate_key /etc/ssl/privkey.pem;
+    
+    # send all requests to the `/validate` endpoint for authorization
+    auth_request /validate;
+    
+    location = /validate {
+        # forward the /validate request to Vouch Proxy
+        proxy_pass http://vouch-proxy:9090/validate;
+    
+        # be sure to pass the original host header
+        proxy_set_header Host $http_host;
+    
+        # Vouch Proxy only acts on the request headers
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+    
+        ### AUTH REQUEST SET ###
+        # optionally add X-Vouch-User as returned by Vouch Proxy along with the request
+        auth_request_set $auth_resp_x_vouch_user $upstream_http_x_vouch_user;
+    
+        # optinally add X-Vouch-IdP-IdToken, X-Vouch-IdP-AccessToken or X-Vouch-IdP-RefreshToken
+        auth_request_set $auth_resp_x_vouch_idp_idtoken $upstream_http_x_vouch_idp_idtoken;
+        #auth_request_set $auth_resp_x_vouch_idp_accesstoken $upstream_http_x_vouch_idp_accesstoken;
+        #auth_request_set $auth_resp_x_vouch_idp_refreshtoken $upstream_http_x_vouch_idp_refreshtoken;
+    
+        # these return values are used by the @error401 call
+        auth_request_set $auth_resp_jwt $upstream_http_x_vouch_jwt;
+        auth_request_set $auth_resp_err $upstream_http_x_vouch_err;
+        auth_request_set $auth_resp_failcount $upstream_http_x_vouch_failcount;
     }
     
-    server {
-        listen 443 ssl http2;
-        server_name $host;
+    # if validate returns `401 not authorized` then forward the request to the error401block
+    error_page 401 = @error401;
     
-        ssl_certificate /etc/ssl/fullchain.pem;
-        ssl_certificate_key /etc/ssl/privkey.pem;
-    
-        # send all requests to the `/validate` endpoint for authorization
-        auth_request /validate;
-    
-        location = /validate {
-            # forward the /validate request to Vouch Proxy
-            proxy_pass http://vouch-proxy:9090/validate;
-    
-            # be sure to pass the original host header
-            proxy_set_header Host $http_host;
-    
-            # Vouch Proxy only acts on the request headers
-            proxy_pass_request_body off;
-            proxy_set_header Content-Length "";
-    
-            ### AUTH REQUEST SET ###
-            # optionally add X-Vouch-User as returned by Vouch Proxy along with the request
-            auth_request_set $auth_resp_x_vouch_user $upstream_http_x_vouch_user;
-    
-            # optinally add X-Vouch-IdP-IdToken, X-Vouch-IdP-AccessToken or X-Vouch-IdP-RefreshToken
-            auth_request_set $auth_resp_x_vouch_idp_idtoken $upstream_http_x_vouch_idp_idtoken;
-            #auth_request_set $auth_resp_x_vouch_idp_accesstoken $upstream_http_x_vouch_idp_accesstoken;
-            #auth_request_set $auth_resp_x_vouch_idp_refreshtoken $upstream_http_x_vouch_idp_refreshtoken;
-    
-            # these return values are used by the @error401 call
-            auth_request_set $auth_resp_jwt $upstream_http_x_vouch_jwt;
-            auth_request_set $auth_resp_err $upstream_http_x_vouch_err;
-            auth_request_set $auth_resp_failcount $upstream_http_x_vouch_failcount;
-        }
-    
-        # if validate returns `401 not authorized` then forward the request to the error401block
-        error_page 401 = @error401;
-    
-        location @error401 {
-            # redirect to Vouch Proxy for login
-            return 302 http://$host:9090/login?url=$scheme://$http_host$request_uri&vouch-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;
-            # you usually *want* to redirect to Vouch running behind the same Nginx config proteced by https
-            # but to get started you can just forward the end user to the port that vouch is running on
-        }
-    
-        # proxy pass authorized requests to your service
-        location / {
-            # CORS
-            if ($request_method = 'OPTIONS') {
-                add_header 'Access-Control-Allow-Origin' '*';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                #
-                # Custom headers and headers various browsers *should* be OK with but aren't
-                #
-                add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
-                #
-                # Tell client that this pre-flight info is valid for 20 days
-                #
-                add_header 'Access-Control-Max-Age' 1728000;
-                add_header 'Content-Type' 'text/plain; charset = utf-8';
-                add_header 'Content-Length' 0;
-                return 204;
-            }
-            if ($request_method = 'POST') {
-                add_header 'Access-Control-Allow-Origin' '*';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
-                add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range';
-            }
-            if ($request_method = 'GET') {
-                add_header 'Access-Control-Allow-Origin' '*';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
-                add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range';
-            }
-            if ($request_method = 'PUT') {
-                add_header 'Access-Control-Allow-Origin' '*';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
-                add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range';
-            }
-            if ($request_method = 'DELETE') {
-                add_header 'Access-Control-Allow-Origin' '*';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
-                add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range';
-            }
-            # forward authorized requests to your service protectedapp.yourdomain.com
-            ### modify proxy_pass prior to deployment
-            ### macOS development (IP from )
-            #proxy_pass http://192.168.65.2:5000/;
-            ### docker-compose deployment
-            proxy_pass http://api-server:5000/;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-    
-            ### AUTH REQUEST SET ###
-            # you may need to set these variables in this block as per https://github.com/vouch/vouch-proxy/issues/26#issuecomment-425215810
-            auth_request_set $auth_resp_x_vouch_user $upstream_http_x_vouch_user;
-    
-            # optinally add X-Vouch-IdP-IdToken, X-Vouch-IdP-AccessToken or X-Vouch-IdP-RefreshToken
-            auth_request_set $auth_resp_x_vouch_idp_idtoken $upstream_http_x_vouch_idp_idtoken;
-            #auth_request_set $auth_resp_x_vouch_idp_accesstoken $upstream_http_x_vouch_idp_accesstoken;
-            #auth_request_set $auth_resp_x_vouch_idp_refreshtoken $upstream_http_x_vouch_idp_refreshtoken;
-    
-            ### PROXY SET HEADER ###
-            # optionally pass any custom claims you are tracking
-            # set user header (usually an email)
-            proxy_set_header X-Vouch-User $auth_resp_x_vouch_user;
-    
-            # optionally pass the idtoken, accesstoken or refreshtoken
-            proxy_set_header X-Vouch-IdP-IdToken $auth_resp_x_vouch_idp_idtoken;
-            #proxy_set_header X-Vouch-IdP-AccessToken $auth_resp_x_vouch_idp_accesstoken;
-            #proxy_set_header X-Vouch-IdP-RefreshToken $auth_resp_x_vouch_idp_refreshtoken;
-        }
+    location @error401 {
+        # redirect to Vouch Proxy for login
+        return 302 http://$host:9090/login?url=$scheme://$http_host$request_uri&vouch-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;
+        # you usually *want* to redirect to Vouch running behind the same Nginx config proteced by https
+        # but to get started you can just forward the end user to the port that vouch is running on
     }
-    ```
+    
+    # proxy pass authorized requests to your service
+    location / {
+        # CORS
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+            #
+            # Custom headers and headers various browsers *should* be OK with but aren't
+            #
+            add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
+            #
+            # Tell client that this pre-flight info is valid for 20 days
+            #
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain; charset = utf-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+        if ($request_method = 'POST') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
+            add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range';
+        }
+        if ($request_method = 'GET') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
+            add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range';
+        }
+        if ($request_method = 'PUT') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
+            add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range';
+        }
+        if ($request_method = 'DELETE') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range';
+            add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range';
+        }
+        # forward authorized requests to your service protectedapp.yourdomain.com
+        ### modify proxy_pass prior to deployment
+        ### macOS development (IP from )
+        #proxy_pass http://192.168.65.2:5000/;
+        ### docker-compose deployment
+        proxy_pass http://api-server:5000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    
+        ### AUTH REQUEST SET ###
+        # you may need to set these variables in this block as per https://github.com/vouch/vouch-proxy/issues/26#issuecomment-425215810
+        auth_request_set $auth_resp_x_vouch_user $upstream_http_x_vouch_user;
+    
+        # optinally add X-Vouch-IdP-IdToken, X-Vouch-IdP-AccessToken or X-Vouch-IdP-RefreshToken
+        auth_request_set $auth_resp_x_vouch_idp_idtoken $upstream_http_x_vouch_idp_idtoken;
+        #auth_request_set $auth_resp_x_vouch_idp_accesstoken $upstream_http_x_vouch_idp_accesstoken;
+        #auth_request_set $auth_resp_x_vouch_idp_refreshtoken $upstream_http_x_vouch_idp_refreshtoken;
+    
+        ### PROXY SET HEADER ###
+        # optionally pass any custom claims you are tracking
+        # set user header (usually an email)
+        proxy_set_header X-Vouch-User $auth_resp_x_vouch_user;
+    
+        # optionally pass the idtoken, accesstoken or refreshtoken
+        proxy_set_header X-Vouch-IdP-IdToken $auth_resp_x_vouch_idp_idtoken;
+        #proxy_set_header X-Vouch-IdP-AccessToken $auth_resp_x_vouch_idp_accesstoken;
+        #proxy_set_header X-Vouch-IdP-RefreshToken $auth_resp_x_vouch_idp_refreshtoken;
+    }
+}
+```
 
 ### <a name="devdeploy"></a>Deploy Development Server
 

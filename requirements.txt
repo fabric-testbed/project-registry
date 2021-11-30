@@ -3,12 +3,12 @@ fabric-comanage-api
 flask-migrate
 flask-sqlalchemy
 psycopg2-binary
+pyjwt
 python-dateutil # alembic[tz]
 python-dotenv
 pytz
 swagger-ui-bundle # connexion[swagger-ui]
-pyjwt
+uwsgi
 #
 # configparser
 # cryptography
-# uwsgi

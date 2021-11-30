@@ -1,14 +1,13 @@
+import logging
 import os
 
 from comanage_api import ComanageApi
 
-# from .db import db
-from swagger_server.__main__ import app, db, logger
+from swagger_server.__main__ import create_app, db
 from swagger_server.db_models import ApiVersion, FabricCous, FabricPeople, FabricProjects, FabricRoles, \
     FabricProjectOwners, FabricProjectMembers
 
-app.app_context().push()
-db.create_all()
+logger = logging.getLogger("Load DB")
 
 api = ComanageApi(
     co_api_url=os.getenv('COMANAGE_API_URL'),
@@ -28,7 +27,6 @@ def load_version():
     api_version.version = version
     api_version.gitsha1 = gitsha1
     db.session.commit()
-    db.session.close()
 
 
 def load_comanage_cous():
@@ -42,7 +40,7 @@ def load_comanage_cous():
             found_cou = True
         else:
             logger.info("Create entry in 'comanage_cous' table for CouId: {0}".format(co_cou_id))
-            found_cou = FabricCous
+            found_cou = False
             fab_cou = FabricCous()
             fab_cou.cou_id = co_cou_id
             fab_cou.created_date = co_cou.get('Created')
@@ -55,10 +53,12 @@ def load_comanage_cous():
         fab_cou.lft = co_cou.get('Lft')
         fab_cou.rght = co_cou.get('Rght')
         fab_cou.modified_date = co_cou.get('Modified')
+        fab_cou.deleted = co_cou.get('Deleted')
+        fab_cou.actor_identifier = co_cou.get('ActorIdentifier')
         if not found_cou:
             db.session.add(fab_cou)
         db.session.commit()
-    db.session.close()
+    db.session.commit()
 
 
 def primary_name_from_coperson_id(co_person_id: int) -> str:
@@ -129,7 +129,7 @@ def load_fabric_people():
                 fab_person.name, fab_person.email, fab_person.oidc_claim_sub))
             db.session.add(fab_person)
         db.session.commit()
-    db.session.close()
+    db.session.commit()
 
 
 def load_fabric_roles():
@@ -151,10 +151,14 @@ def load_fabric_roles():
                         logger.info("Create entry in 'roles' table for CoPersonRolesId: {0}".format(co_role_id))
                         role = FabricRoles()
                         role_cou = FabricCous.query.filter_by(cou_id=co_cou_id).one_or_none()
+                        if role_cou:
+                            role.cou_id = role_cou.__asdict__().get('id')
+                            role.role_name = role_cou.__asdict__().get('name')
+                        else:
+                            logger.warning("CoPersonRolesId: {0} is missing 'CouId'".format(co_role_id))
+                            continue
                         role.role_id = co_role_id
                         role.people_id = person.id
-                        role.cou_id = role_cou.__asdict__().get('id')
-                        role.role_name = role_cou.__asdict__().get('name')
                         role.status = status
                         db.session.add(role)
                         db.session.commit()
@@ -163,9 +167,8 @@ def load_fabric_roles():
                         role.status = status
                         db.session.commit()
                 else:
-                    logger.warning(
-                        "CoPersonRolesId: {0} is missing 'CouId'".format(co_role_id))
-    db.session.close()
+                    logger.warning("CoPersonRolesId: {0} is missing 'CouId'".format(co_role_id))
+    db.session.commit()
 
 
 def load_fabric_projects():
@@ -192,6 +195,7 @@ def load_fabric_projects():
                     fab_project.uuid = proj_uuid
                     fab_project.name = d_proj_cou.get('description')
                     fab_project.description = d_proj_cou.get('description')
+                    fab_project.facility = os.getenv('FABRIC_FACILITY')
                     fab_project.created_time = d_proj_cou.get('created_date')
                 cb_id = FabricRoles.query.filter_by(
                     cou_id=d_proj_cou.get('id')
@@ -235,14 +239,16 @@ def load_fabric_projects():
                             db.session.add(member)
                             db.session.commit()
 
-    db.session.close()
+    db.session.commit()
 
 
 if __name__ == '__main__':
     logger.info("Start idempotent database load/update")
+    app = create_app()
+    app.app_context().push()
     load_version()
     load_comanage_cous()
     load_fabric_people()
     load_fabric_roles()
     load_fabric_projects()
-
+    db.session.close()

@@ -86,7 +86,7 @@ class FabricProjects(db.Model):
     facility = db.Column(db.String(), nullable=False)
     created_by = db.Column(db.String(), nullable=False)
     created_time = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    modified = db.Column(db.DateTime(timezone=True), onupdate=datetime.now(timezone.utc))
+    modified = db.Column(db.DateTime(timezone=True), nullable=True, onupdate=datetime.now(timezone.utc))
 
     def __asdict__(self):
         return {c.name: str(getattr(self, c.name)) for c in self.__table__.columns}

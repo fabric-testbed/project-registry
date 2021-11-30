@@ -1,13 +1,15 @@
-from flask import request, Response
-from jwt import decode
-import requests
 import os
 from json import JSONDecodeError
+from typing import Optional
+
+import requests
+from flask import request, Response
+from jwt import decode
+
+from swagger_server.db import db
 from swagger_server.db_models import FabricPeople
 from swagger_server.models.people_long import PeopleLong
 from .local_controller import get_roles_per_person, get_projects_per_person
-from typing import Optional
-from swagger_server.db import db
 
 
 def cors_response(request, status_code=200, body=None, x_error=None):
@@ -17,7 +19,8 @@ def cors_response(request, status_code=200, body=None, x_error=None):
     response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
     response.headers['Access-Control-Allow-Credentials'] = 'true'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range'
+    response.headers['Access-Control-Allow-Headers'] = \
+        'DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range'
     response.headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, X-Error'
 
     if x_error:
@@ -31,7 +34,7 @@ def cors_401():
         request=request,
         status_code=401,
         body='Unauthorized',
-        x_error='Authentication required'
+        x_error='Authentication and/or Authorization required'
     )
 
 

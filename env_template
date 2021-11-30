@@ -1,10 +1,52 @@
-# swagger host FQDN or IP
-SWAGGER_HOST=127.0.0.1:5000
+# Configuration
 
-# postgres configuration
-POSTGRES_HOST=database
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=registry
-PGDATA=/var/lib/postgresql/data/pgdata
-POSTGRES_DB=postgres
+### API Configuration
+export API_VERSION=1.0.0
+export API_GITSHA1=767ee40c8de7bc8ad5fe920b1be6f6bdc4f7c7d7
+export API_DEBUG=true
+export API_SWAGGER_HOST=127.0.0.1:6000
+
+### Facility Configuration
+export FABRIC_FACILITY=FABRIC
+
+### UIS Configuration
+export UIS_AUTH_COOKIE_NAME=uis-auth-cookie-name
+export UIS_GET_USER_UUID_ENDPOINT=uis-get-user-uuid-endpoint
+
+### Non-Project Roles
+export ROLE_ACTIVE_USERS=fabric-active-users
+export ROLE_FACILITY_OPERATORS=facility-operators
+export ROLE_PROJECT_LEADS=project-leads
+export ROLE_APPROVAL_COMMITTEE=approval-committee
+
+### COmanage API User
+export COMANAGE_API_USER=co_123.api-user-name
+export COMANAGE_API_PASS=xxxx-xxxx-xxxx-xxxx
+export COMANAGE_API_CO_NAME=RegistryName
+export COMANAGE_API_CO_ID=123
+export COMANAGE_API_URL=https://FQDN_OF_REGISTRY
+export COMANAGE_API_SSH_KEY_AUTHENTICATOR_ID=123
+
+### COmanage COU IDs
+export COU_ID_FACILITY_OPERATORS=100
+export COU_ID_PROJECT_LEADS=101
+export COU_ID_PROJECTS=102
+export COU_ID_ACTIVE_USERS=103
+export COU_ID_APPROVAL_COMMITTEE=104
+export COU_ID_JUPYTERHUB=105
+
+### Postgres
+#export POSTGRES_SERVER=127.0.0.1
+export POSTGRES_SERVER=database
+export POSTGRES_PORT=5432
+export POSTGRES_PASSWORD=registry
+export POSTGRES_USER=postgres
+export POSTGRES_DB=postgres
+export PGDATA=/var/lib/postgresql/data/pg_data
+export LOCAL_DATA=./data
+
+### Python Path
+export PYTHONPATH=$(pwd)/server:$(pwd)/venv:$(pwd)/.venv
+
+### Flask
+export FLASK_APP=swagger_server.__main__:app
