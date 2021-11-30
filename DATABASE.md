@@ -67,8 +67,17 @@ docker exec -u postgres pr-database psql -c "alter sequence <table_name>_id_seq 
 
 Load data from script
 
+Flask on host:
+
 ```
 python -m server.swagger_server.db_load
+```
+
+Flask on docker:
+
+```
+docker exec pr-flask-server /bin/bash -c "source .env; source .venv/bin/activate; python -m server.swagger_server.db_load"
+docker exec pr-flask-server /bin/bash -c "source .env; source .venv/bin/activate; python -m server.swagger_server.db_verify"
 ```
 
 ## Conveniece calls
