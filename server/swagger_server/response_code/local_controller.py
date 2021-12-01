@@ -570,6 +570,7 @@ def sync_roles_per_person(person_uuid: str) -> bool:
     person = FabricPeople.query.filter_by(uuid=person_uuid).one_or_none()
     if person:
         person = person.__asdict__()
+        person_id = person.get('id')
         person_uuid = person.get('uuid')
         co_person_id = person.get('co_person_id')
         co_person_roles = api.coperson_roles_view_per_coperson(coperson_id=co_person_id).get('CoPersonRoles')
@@ -582,11 +583,12 @@ def sync_roles_per_person(person_uuid: str) -> bool:
                 print("[INFO] Create role for Person: {0}, role: {1}".format(person_uuid, role_id))
                 co_person_role = FabricRoles()
                 role_found = False
+                co_person_role.people_id = person_id
                 co_person_role.role_id = role_id
                 role_cou = FabricCous.query.filter_by(cou_id=role.get('CouId')).one_or_none()
                 if role_cou:
                     role_cou = role_cou.__asdict__()
-                    co_person_role.cou_id = role_cou.get('cou_id')
+                    co_person_role.cou_id = role_cou.get('id')
                     co_person_role.role_name = role_cou.get('name')
                 else:
                     print("[ERROR] COU for CoPersonRole {0} Not Found -- may need to DELETE role?".format(role_id))
