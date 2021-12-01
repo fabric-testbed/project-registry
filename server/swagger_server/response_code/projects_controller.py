@@ -197,12 +197,7 @@ def projects_delete_delete(uuid):  # noqa: E501
             x_error='Not Found'
         )
 
-    return cors_response(
-        request=request,
-        status_code=200,
-        body='OK',
-        x_error='Project Deleted: {0}'.format(str(uuid))
-    )
+    return 'OK'
 
 
 def projects_get(project_name=None):  # noqa: E501

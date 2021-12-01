@@ -99,16 +99,8 @@ def people_role_attribute_sync_get():  # noqa: E501
     if not api_user.uuid:
         return cors_401()
 
-    # ALLOW: all users with a UUID
-    if not api_user.uuid:
-        return cors_401()
-
     if sync_roles_per_person(api_user.uuid):
-        return cors_response(
-            request=request,
-            status_code=200,
-            body='OK'
-        )
+        return 'OK'
     else:
         return cors_response(
             request=request,
