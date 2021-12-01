@@ -569,27 +569,25 @@ def update_project_by_project_uuid(project_uuid: str, name: str, description: st
 def sync_roles_per_person(person_uuid: str) -> bool:
     person = FabricPeople.query.filter_by(uuid=person_uuid).one_or_none()
     if person:
-        person = person.__asdict__()
-        person_id = person.get('id')
-        person_uuid = person.get('uuid')
-        co_person_id = person.get('co_person_id')
-        co_person_roles = api.coperson_roles_view_per_coperson(coperson_id=co_person_id).get('CoPersonRoles')
+        person_id = person.id
+        person_uuid = person.uuid
+        co_person_id = person.co_person_id
+        co_person_roles = api.coperson_roles_view_per_coperson(coperson_id=co_person_id).get('CoPersonRoles', [])
         co_role_ids = []
         for role in co_person_roles:
             role_id = role.get('Id')
             co_role_ids.append(role_id)
             co_person_role = FabricRoles.query.filter_by(role_id=role_id).one_or_none()
+            role_cou = FabricCous.query.filter_by(cou_id=role.get('CouId')).one_or_none()
             if not co_person_role:
                 print("[INFO] Create role for Person: {0}, role: {1}".format(person_uuid, role_id))
                 co_person_role = FabricRoles()
                 role_found = False
                 co_person_role.people_id = person_id
                 co_person_role.role_id = role_id
-                role_cou = FabricCous.query.filter_by(cou_id=role.get('CouId')).one_or_none()
                 if role_cou:
-                    role_cou = role_cou.__asdict__()
-                    co_person_role.cou_id = role_cou.get('id')
-                    co_person_role.role_name = role_cou.get('name')
+                    co_person_role.cou_id = role_cou.id
+                    co_person_role.role_name = role_cou.name
                 else:
                     print("[ERROR] COU for CoPersonRole {0} Not Found -- may need to DELETE role?".format(role_id))
                     continue
@@ -600,6 +598,35 @@ def sync_roles_per_person(person_uuid: str) -> bool:
             if not role_found:
                 db.session.add(co_person_role)
             db.session.commit()
+            if role_cou:
+                if role_cou.name[-3:] == '-po':
+                    fab_project = FabricProjects.query.filter_by(uuid=role_cou.name[:-3]).first()
+                    is_owner = FabricProjectOwners.query.filter(
+                        FabricProjectOwners.people_id == person_id,
+                        FabricProjectOwners.projects_id == fab_project.id
+                    ).one_or_none()
+                    if not is_owner:
+                        print("[INFO] Create entry for Person: {0} in project_owners table".format(person_uuid))
+                        owner = FabricProjectOwners()
+                        owner.projects_id = fab_project.id
+                        owner.people_id = person_id
+                        db.session.add(owner)
+                        db.session.commit()
+                elif role_cou.name[-3:] == '-pm':
+                    fab_project = FabricProjects.query.filter_by(uuid=role_cou.name[:-3]).first()
+                    is_member = FabricProjectMembers.query.filter(
+                        FabricProjectMembers.people_id == person_id,
+                        FabricProjectMembers.projects_id == fab_project.id
+                    ).one_or_none()
+                    if not is_member:
+                        print("[INFO] Create entry for Person: {0} in project_members table".format(person_uuid))
+                        member = FabricProjectMembers()
+                        member.projects_id = fab_project.id
+                        member.people_id = person_id
+                        db.session.add(member)
+                        db.session.commit()
+                else:
+                    continue
 
     return True
 

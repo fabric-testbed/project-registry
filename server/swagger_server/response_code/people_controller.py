@@ -30,7 +30,7 @@ def people_get(person_name=None):  # noqa: E501
     fab_people = []
     if person_name:
         people = FabricPeople.query.filter(
-            FabricPeople.name.ilike("%" + person_name + "%")
+            (FabricPeople.name.ilike("%" + person_name + "%")) | (FabricPeople.email.ilike("%" + person_name + "%"))
         ).order_by(FabricPeople.name).all()
     else:
         people = FabricPeople.query.order_by(FabricPeople.name).all()
