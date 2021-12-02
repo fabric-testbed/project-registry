@@ -1,4 +1,23 @@
 # Created by .ignore support plugin (hsz.mobi)
+
+### Local provisions
+
+# server stub per swagger codegen
+server-stub
+
+# vouch configuration
+vouch/config
+
+# general configuration
+server/swagger_server/config/config.ini
+
+# migrations
+migrations
+
+# database backup files
+data
+backup.sql
+
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -169,14 +188,3 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-
-### Local provisions
-
-# server stub per swagger codegen
-server-stub
-
-# vouch configuration
-vouch/config
-
-# general configuration
-server/swagger_server/config/config.ini

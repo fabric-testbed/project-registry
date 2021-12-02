@@ -1,23 +1,52 @@
 #!/usr/bin/env python3
 
-from configparser import ConfigParser
+import os
+from logging import Formatter
+from logging.config import dictConfig
+from pathlib import Path
 
 import connexion
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-from . import encoder
+from swagger_server import encoder
+from .db import db
 
-config = ConfigParser()
-config.read('swagger_server/config/config.ini')
+# load environment variables
+env_path = Path('../../') / '.env'
+load_dotenv(verbose=True, dotenv_path=env_path)
 
-POSTGRES_ENGINE = 'postgres://' + config.get('postgres', 'user') + ':' + config.get('postgres', 'password') \
-                  + '@' + config.get('postgres', 'host') + ':' + config.get('postgres', 'port') \
-                  + '/' + config.get('postgres', 'database')
+formatter = Formatter(  # pylint: disable=invalid-name
+    '%(asctime)s %(levelname)s %(process)d ---- %(threadName)s  '
+    '%(module)s : %(funcName)s {%(pathname)s:%(lineno)d} %(message)s', '%Y-%m-%dT%H:%M:%SZ')
 
-engine = create_engine(POSTGRES_ENGINE)
-Session = sessionmaker(bind=engine)
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 
-app = connexion.App(__name__, specification_dir='./swagger/')
-app.app.json_encoder = encoder.JSONEncoder
-app.add_api('swagger.yaml', arguments={'title': 'FABRIC Project Registry'}, pythonic_params=True)
+connex_app = connexion.App(__name__, specification_dir='./swagger/')
+connex_app.app.json_encoder = encoder.JSONEncoder
+connex_app.add_api('swagger.yaml', arguments={'title': 'FABRIC Project Registry API'}, pythonic_params=True)
+
+app = connex_app.app
+
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://{0}:{1}@{2}:{3}/{4}".format(
+    os.getenv('POSTGRES_USER'),
+    os.getenv('POSTGRES_PASSWORD'),
+    os.getenv('POSTGRES_SERVER'),
+    os.getenv('POSTGRES_PORT'),
+    os.getenv('POSTGRES_DB')
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['PROPAGATE_EXCEPTIONS'] = True
