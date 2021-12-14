@@ -1,7 +1,7 @@
 from flask_migrate import Migrate
 
 from swagger_server.db import db
-from . import app
+from swagger_server import app
 
 
 def create_app():
