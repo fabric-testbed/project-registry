@@ -146,6 +146,19 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
     return rc.projects_remove_tags_put(uuid, tags)
 
 
+def projects_tags_get(search=None):  # noqa: E501
+    """List of valid Project Tags
+
+    List of valid Project Tags # noqa: E501
+
+    :param search: search term applied
+    :type search: str
+
+    :rtype: List[str]
+    """
+    return rc.projects_tags_get(search)
+
+
 def projects_update_put(uuid, name=None, description=None, facility=None):  # noqa: E501
     """update an existing project
 

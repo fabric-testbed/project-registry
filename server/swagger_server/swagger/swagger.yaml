@@ -70,6 +70,35 @@ paths:
         "5XX":
           description: Unexpected error
       x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/tags:
+    get:
+      tags:
+      - projects
+      summary: List of valid Project Tags
+      description: List of valid Project Tags
+      operationId: projects_tags_get
+      parameters:
+      - name: search
+        in: query
+        description: search term applied
+        required: false
+        style: form
+        explode: true
+        schema:
+          minLength: 3
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: VM.NoLimit
+                x-content-type: application/json
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
   /projects/{uuid}:
     get:
       tags:
@@ -758,4 +787,15 @@ components:
       example:
         gitsha1: gitsha1
         version: version
+  parameters:
+    search:
+      name: search
+      in: query
+      description: search term applied
+      required: false
+      style: form
+      explode: true
+      schema:
+        minLength: 3
+        type: string
 

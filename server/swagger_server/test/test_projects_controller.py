@@ -141,6 +141,19 @@ class TestProjectsController(BaseTestCase):
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
 
+    def test_projects_tags_get(self):
+        """Test case for projects_tags_get
+
+        List of valid Project Tags
+        """
+        query_string = [('search', 'search_example')]
+        response = self.client.open(
+            '//projects/tags',
+            method='GET',
+            query_string=query_string)
+        self.assert200(response,
+                       'Response body is : ' + response.data.decode('utf-8'))
+
     def test_projects_update_put(self):
         """Test case for projects_update_put
 

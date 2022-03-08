@@ -10,6 +10,7 @@ from .local_controller import get_project_long_by_uuid, add_tags_by_project_uuid
     update_project_by_project_uuid, add_members_by_project_uuid, get_project_short_by_uuid, \
     add_owners_by_project_uuid, remove_members_by_project_uuid, remove_owners_by_project_uuid, project_create, \
     project_delete
+from swagger_server.response_code import PROJECT_TAGS
 
 
 def projects_add_members_put(uuid, project_members=None):  # noqa: E501
@@ -107,6 +108,14 @@ def projects_add_tags_put(uuid, tags=None):  # noqa: E501
 
     fab_project = FabricProjects.query.filter_by(uuid=uuid).one_or_none()
     if fab_project:
+        for tag in tags:
+            if tag not in PROJECT_TAGS:
+                return cors_response(
+                    request=request,
+                    status_code=400,
+                    body="Attempting to add invalid tag '{0}'".format(tag),
+                    x_error='Bad Request'
+                )
         add_tags_by_project_uuid(project_uuid=uuid, tags=tags)
     else:
         return cors_response(
@@ -228,6 +237,24 @@ def projects_get(project_name=None):  # noqa: E501
     for project in projects:
         fab_projects.append(get_project_short_by_uuid(project_uuid=project.__asdict__().get('uuid')))
     response = fab_projects
+
+    return response
+
+
+def projects_tags_get(search=None):  # noqa: E501
+    """List of valid Project Tags
+
+    List of valid Project Tags # noqa: E501
+
+    :param search: search term applied
+    :type search: str
+
+    :rtype: List[str]
+    """
+    if search:
+        response = [tag for tag in PROJECT_TAGS if search.casefold() in tag.casefold()]
+    else:
+        response = PROJECT_TAGS
 
     return response
 
