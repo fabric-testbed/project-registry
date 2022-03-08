@@ -4,7 +4,7 @@ import json
 
 def load_choices(file_name: str = None) -> [str]:
     if file_name:
-        file_path = os.path.join(os.path.dirname(__file__), 'data', file_name)
+        file_path = os.path.join(os.path.dirname(__file__), 'json_data', file_name)
         with open(file_path) as file:
             file_dict = json.load(file)
 
