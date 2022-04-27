@@ -9,11 +9,11 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.0.0
+  version: 1.2.0
 servers:
 - url: http://127.0.0.1:5000/
   description: local development
-- url: https://virtserver.swaggerhub.com/mjstealey/project-registry/1.0.0
+- url: https://virtserver.swaggerhub.com/mjstealey/project-registry/1.2.0
   description: SwaggerHub API Auto Mocking
 tags:
 - name: projects
@@ -69,35 +69,6 @@ paths:
           description: Projects not found
         "5XX":
           description: Unexpected error
-      x-openapi-router-controller: swagger_server.controllers.projects_controller
-  /projects/tags:
-    get:
-      tags:
-      - projects
-      summary: List of valid Project Tags
-      description: List of valid Project Tags
-      operationId: projects_tags_get
-      parameters:
-      - name: search
-        in: query
-        description: search term applied
-        required: false
-        style: form
-        explode: true
-        schema:
-          minLength: 3
-          type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
-                  example: VM.NoLimit
-                x-content-type: application/json
       x-openapi-router-controller: swagger_server.controllers.projects_controller
   /projects/{uuid}:
     get:
@@ -529,6 +500,33 @@ paths:
         "5XX":
           description: Unexpected error
       x-openapi-router-controller: swagger_server.controllers.projects_controller
+  /projects/tags:
+    get:
+      tags:
+      - projects
+      summary: List of Projects Tag options
+      description: List of Projects Tag options
+      operationId: projects_tags_get
+      parameters:
+      - name: search
+        in: query
+        description: search term applied
+        required: false
+        style: form
+        explode: true
+        schema:
+          minLength: 3
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api_options'
+        "5XX":
+          description: Unexpected error
+      x-openapi-router-controller: swagger_server.controllers.projects_controller
   /people:
     get:
       tags:
@@ -787,6 +785,18 @@ components:
       example:
         gitsha1: gitsha1
         version: version
+    api_options:
+      type: object
+      allOf:
+      - type: object
+        properties:
+          data:
+            type: array
+            items:
+              type: object
+              additionalProperties:
+                type: string
+              example: show_XYZ
   parameters:
     search:
       name: search

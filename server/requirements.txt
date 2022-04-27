@@ -1,12 +1,3 @@
-configparser
-connexion
-cryptography
-flask-sqlalchemy
-ldap3
-psycopg2-binary
-PyJWT==1.7.1
-python_dateutil
-pytz
-SQLAlchemy==1.3.23
-swagger-ui-bundle
-uwsgi
+connexion == 2.6.0
+python_dateutil == 2.6.0
+setuptools >= 21.0.0

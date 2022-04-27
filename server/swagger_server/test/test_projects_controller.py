@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from flask import json
 from six import BytesIO
 
+from swagger_server.models.api_options import ApiOptions  # noqa: E501
 from swagger_server.models.project_long import ProjectLong  # noqa: E501
 from swagger_server.models.project_short import ProjectShort  # noqa: E501
 from swagger_server.test import BaseTestCase
@@ -144,7 +145,7 @@ class TestProjectsController(BaseTestCase):
     def test_projects_tags_get(self):
         """Test case for projects_tags_get
 
-        List of valid Project Tags
+        List of Projects Tag options
         """
         query_string = [('search', 'search_example')]
         response = self.client.open(

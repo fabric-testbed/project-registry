@@ -1,18 +1,14 @@
 {
-  "name": "projects.tags",
-  "description": "FABRIC tags as denoted by the key in key_value_pairs",
+  "name": "projects.tags.base",
+  "description": "Project Tags (BASE) denote project capability at all levels and are only configurable by a Facility Operator",
   "api_endpoints": [
     {
       "endpoint": "/projects/tags",
-      "description": "GET: optional parameter 'search', 3 char minimum"
+      "description": "GET: List of Projects Tags options using optional 'search' parameter"
     },
     {
-      "endpoint": "/projects/add_tags",
-      "description": "PUT: add specified tags to project if they don't already exist"
-    },
-    {
-      "endpoint": "/projects/remove_tags",
-      "description": "DELETE: remove specified tags from project if they exist"
+      "endpoint": "/projects/tags",
+      "description": "PATCH: overwrite Projects Tags when found in request body"
     }
   ],
   "key_value_pairs": {
@@ -28,8 +24,7 @@
     "Net.NoLimitBW": "allows to provision links over X Gbps",
     "Net.Peering": "allows to create slices with public peering",
     "Net.PortMirroring": "allows to create slices that include port mirroring",
-    "Net.StitchPort.XXX": "allows to create slices with stitch port with short name XXX",
-    "Net.AllStitchPorts": "allows to create slices with any stitchport",
+    "Net.AllFacilityPorts": "allows to create slices with any stitchport",
     "Slice.Multisite": "allows to create slices spanning multiple sites",
     "Slice.Measurements": "allows to provision measurement VMs",
     "Slice.NoLimitLifetime": "allows to create slices with a lifetime beyond default limit X time units without the need to renew"
