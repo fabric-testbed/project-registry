@@ -3,17 +3,17 @@
 version: '3.9'
 services:
 
-  flask:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    container_name: pr-flask-server
-    depends_on:
-      - database
-      - nginx
-    ports:
-      - "6000:6000"
-    restart: unless-stopped
+#  flask:
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile
+#    container_name: pr-flask-server
+#    depends_on:
+#      - database
+#      - nginx
+# #   ports:
+# #     - "5000:5000"
+#    restart: unless-stopped
 
   database:
     image: postgres:14
@@ -26,8 +26,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       PGDATA: ${PGDATA:-/var/lib/postgresql/data}
-    volumes:
-      - ${LOCAL_DATA:-./data}:/var/lib/postgresql/data
+#    volumes:
+#      - ${LOCAL_DATA:-./data}:/var/lib/postgresql/data
 
   nginx:
     image: nginx:1

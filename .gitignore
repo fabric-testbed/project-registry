@@ -2,14 +2,20 @@
 
 ### Local provisions
 
-# server stub per swagger codegen
-server-stub
+# swagger codegen stub code
+python-flask-server-generated
+server_archive
 
 # vouch configuration
 vouch/config
 
 # general configuration
-server/swagger_server/config/config.ini
+.env.alpha
+.env.beta
+.env.prod
+vouch/config.alpha
+vouch/config.beta
+vouch/config.prod
 
 # migrations
 migrations

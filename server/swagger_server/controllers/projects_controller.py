@@ -1,6 +1,7 @@
 import connexion
 import six
 
+from swagger_server.models.api_options import ApiOptions  # noqa: E501
 from swagger_server.models.project_long import ProjectLong  # noqa: E501
 from swagger_server.models.project_short import ProjectShort  # noqa: E501
 from swagger_server import util
@@ -144,6 +145,19 @@ def projects_remove_tags_put(uuid, tags=None):  # noqa: E501
     :rtype: ProjectLong
     """
     return rc.projects_remove_tags_put(uuid, tags)
+
+
+def projects_tags_get(search=None):  # noqa: E501
+    """List of Projects Tag options
+
+    List of Projects Tag options # noqa: E501
+
+    :param search: search term applied
+    :type search: str
+
+    :rtype: ApiOptions
+    """
+    return rc.projects_tags_get(search)
 
 
 def projects_update_put(uuid, name=None, description=None, facility=None):  # noqa: E501

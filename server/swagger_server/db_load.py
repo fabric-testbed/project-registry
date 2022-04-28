@@ -24,8 +24,14 @@ def load_version():
     version = os.getenv('API_VERSION')
     gitsha1 = os.getenv('API_GITSHA1')
     api_version = ApiVersion.query.first()
-    api_version.version = version
-    api_version.gitsha1 = gitsha1
+    if not api_version:
+        api_version = ApiVersion()
+        api_version.version = version
+        api_version.gitsha1 = gitsha1
+        db.session.add(api_version)
+    else:
+        api_version.version = version
+        api_version.gitsha1 = gitsha1
     db.session.commit()
 
 

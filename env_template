@@ -1,6 +1,7 @@
 # Configuration
 
 ### API Configuration
+export CORE_API_DEPLOYMENT_TIER=alpha
 export API_VERSION=1.0.0
 export API_GITSHA1=767ee40c8de7bc8ad5fe920b1be6f6bdc4f7c7d7
 export API_DEBUG=true

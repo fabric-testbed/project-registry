@@ -14,6 +14,6 @@ WORKDIR /code
 
 # set entrypoint and exposed ports
 ENTRYPOINT ["/code/docker-entrypoint.sh"]
-EXPOSE 6000
+EXPOSE 5000
 CMD ["run_server"]
 

@@ -1,0 +1,19 @@
+{
+  "name": "projects.tags.production",
+  "description": "Project Tags (PRODUCTION) denote project capability exclusive to the production tier and are only configurable by a Facility Operator",
+  "api_endpoints": [
+    {
+      "endpoint": "/projects/tags",
+      "description": "GET: List of Projects Tags options using optional 'search' parameter"
+    },
+    {
+      "endpoint": "/projects/tags",
+      "description": "PATCH: overwrite Projects Tags when found in request body"
+    }
+  ],
+  "key_value_pairs": {
+    "Net.FacilityPort.Chameleon-StarLight": "Chameleon-StarLight Production",
+    "Net.FacilityPort.ESnet-StarLight": "ESnet-StarLight Production",
+    "Net.FacilityPort.Internet2-StarLight": "Internet2-StarLight Production"
+  }
+}

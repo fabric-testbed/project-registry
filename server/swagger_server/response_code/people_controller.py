@@ -1,3 +1,4 @@
+import json
 import os
 
 from flask import request
@@ -35,11 +36,10 @@ def people_get(person_name=None):  # noqa: E501
     else:
         people = FabricPeople.query.order_by(FabricPeople.name).all()
     for person in people:
-        d_person = person.__asdict__()
         ps = PeopleShort()
-        ps.name = d_person.get('name')
-        ps.email = d_person.get('email')
-        ps.uuid = d_person.get('uuid')
+        ps.name = person.name
+        ps.email = person.email
+        ps.uuid = person.uuid
         fab_people.append(ps)
     response = fab_people
 
