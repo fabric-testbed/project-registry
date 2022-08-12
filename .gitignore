@@ -23,6 +23,9 @@ migrations
 # database backup files
 data
 backup.sql
+pr_people.json
+pr_projects.json
+pr_tags.json
 
 ### Python template
 # Byte-compiled / optimized / DLL files
