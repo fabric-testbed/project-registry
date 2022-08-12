@@ -56,7 +56,7 @@ def dump_projects_data():
             'facility': p.facility,
             'created_by': p.created_by,
             'created_time': str(p.created_time),
-            'modified': p.modified
+            'modified': str(p.modified)
         }
         projects.append(data)
     output_dict = {'pr_projects': projects}
