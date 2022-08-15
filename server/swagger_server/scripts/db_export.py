@@ -111,8 +111,8 @@ def dump_tags_data():
     for p in fab_tags:
         data = {
             'id': p.id,
-            'projects_id': p.id,
-            'tag': p.id
+            'projects_id': p.projects_id,
+            'tag': p.tag
         }
         tags.append(data)
     output_dict = {'pr_tags': tags}
