@@ -12,7 +12,7 @@
     }
   ],
   "key_value_pairs": {
-    "Net.FacilityPort.RENCI-GSU": "RENCI Development",
-    "Net.FacilityPort.RENCI-Chameleon": "RENCI Development"
+    "Net.FacilityPort.RENC-GSU": "RENCI Development",
+    "Net.FacilityPort.RENC-Chameleon": "RENCI Development"
   }
 }
