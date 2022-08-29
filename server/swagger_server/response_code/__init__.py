@@ -10,5 +10,3 @@ elif os.getenv('CORE_API_DEPLOYMENT_TIER') == 'beta':
     PROJECTS_TAGS = PROJECTS_TAGS + CoreApiOptions('projects_tags_beta.json')
 else:
     PROJECTS_TAGS = PROJECTS_TAGS + CoreApiOptions('projects_tags_alpha.json')
-
-print(PROJECTS_TAGS.options)
